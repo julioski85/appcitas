@@ -69,6 +69,13 @@ class CitaController extends Controller
             back();
         }
 
+        $today = date('Y-m-d');
+        if ($data['fecha'] < $today) {
+            set_flash('error', 'No se pueden agendar citas en fechas anteriores al día actual.');
+            set_old($input);
+            back();
+        }
+
         $sucursal = Sucursal::find((int)$data['sucursal_id']);
         $capacidad = max(1, (int)($sucursal['capacidad_simultanea'] ?? 1));
 
