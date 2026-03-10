@@ -178,6 +178,11 @@ class ApiController extends Controller
             $this->json(['ok' => false, 'message' => 'La hora fin debe ser mayor a la hora inicio.'], 422);
         }
 
+        $today = date('Y-m-d');
+        if ($data['fecha'] < $today) {
+            $this->json(['ok' => false, 'message' => 'No se pueden agendar citas en fechas anteriores al día actual.'], 422);
+        }
+
         if (!in_array($data['servicio'], Cita::SERVICIOS, true)) {
             $this->json(['ok' => false, 'message' => 'Servicio inválido.'], 422);
         }
