@@ -31,6 +31,7 @@ CREATE TABLE IF NOT EXISTS citas (
     cliente_nombre VARCHAR(150) NOT NULL,
     cliente_telefono VARCHAR(30) NOT NULL,
     servicio VARCHAR(150) NOT NULL,
+    codigo_promocion VARCHAR(100) NULL,
     fecha DATE NOT NULL,
     hora_inicio TIME NOT NULL,
     hora_fin TIME NOT NULL,

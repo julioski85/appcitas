@@ -59,6 +59,7 @@ class ApiController extends Controller
                 'cliente_nombre' => $event['cliente_nombre'],
                 'cliente_telefono' => $event['cliente_telefono'],
                 'servicio' => $event['servicio'],
+                'codigo_promocion' => $event['codigo_promocion'],
                 'backgroundColor' => $event['color_calendario'],
                 'borderColor' => $event['color_calendario'],
                 'url' => url('/citas/edit/' . $event['id']),
@@ -89,12 +90,16 @@ class ApiController extends Controller
             'cliente_nombre' => trim((string)$payload['cliente_nombre']),
             'cliente_telefono' => trim((string)$payload['cliente_telefono']),
             'servicio' => trim((string)$payload['servicio']),
+            'codigo_promocion' => null,
             'fecha' => trim((string)$payload['fecha']),
             'hora_inicio' => trim((string)$payload['hora_inicio']),
             'hora_fin' => trim((string)$payload['hora_fin']),
             'estatus' => trim((string)($payload['estatus'] ?? 'agendada')),
             'origen' => trim((string)($payload['origen'] ?? 'web')),
         ];
+
+        $codigoPromocion = trim((string)($payload['codigo_promocion'] ?? ''));
+        $data['codigo_promocion'] = $codigoPromocion === '' ? null : $codigoPromocion;
 
         if ($user['rol'] === 'sucursal') {
             $data['sucursal_id'] = (string)$user['sucursal_id'];
