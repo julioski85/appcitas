@@ -32,6 +32,11 @@
         </div>
 
         <div class="form-group">
+            <label>Código de promoción</label>
+            <input type="text" name="codigo_promocion" value="<?= e(old('codigo_promocion', $cita['codigo_promocion'] ?? '')) ?>" placeholder="Código de promoción (opcional)">
+        </div>
+
+        <div class="form-group">
             <label>Cliente</label>
             <input type="text" name="cliente_nombre" value="<?= e(old('cliente_nombre', $cita['cliente_nombre'] ?? '')) ?>" required>
         </div>

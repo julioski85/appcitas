@@ -84,14 +84,15 @@ class Cita
     {
         return Database::execute(
             "INSERT INTO citas
-             (sucursal_id, cliente_nombre, cliente_telefono, servicio, fecha, hora_inicio, hora_fin, estatus, creado_por, origen, created_at, updated_at)
+             (sucursal_id, cliente_nombre, cliente_telefono, servicio, codigo_promocion, fecha, hora_inicio, hora_fin, estatus, creado_por, origen, created_at, updated_at)
              VALUES
-             (:sucursal_id, :cliente_nombre, :cliente_telefono, :servicio, :fecha, :hora_inicio, :hora_fin, :estatus, :creado_por, :origen, NOW(), NOW())",
+             (:sucursal_id, :cliente_nombre, :cliente_telefono, :servicio, :codigo_promocion, :fecha, :hora_inicio, :hora_fin, :estatus, :creado_por, :origen, NOW(), NOW())",
             [
                 'sucursal_id' => $data['sucursal_id'],
                 'cliente_nombre' => $data['cliente_nombre'],
                 'cliente_telefono' => $data['cliente_telefono'],
                 'servicio' => $data['servicio'],
+                'codigo_promocion' => $data['codigo_promocion'],
                 'fecha' => $data['fecha'],
                 'hora_inicio' => $data['hora_inicio'],
                 'hora_fin' => $data['hora_fin'],
@@ -110,6 +111,7 @@ class Cita
                  cliente_nombre = :cliente_nombre,
                  cliente_telefono = :cliente_telefono,
                  servicio = :servicio,
+                 codigo_promocion = :codigo_promocion,
                  fecha = :fecha,
                  hora_inicio = :hora_inicio,
                  hora_fin = :hora_fin,
@@ -123,6 +125,7 @@ class Cita
                 'cliente_nombre' => $data['cliente_nombre'],
                 'cliente_telefono' => $data['cliente_telefono'],
                 'servicio' => $data['servicio'],
+                'codigo_promocion' => $data['codigo_promocion'],
                 'fecha' => $data['fecha'],
                 'hora_inicio' => $data['hora_inicio'],
                 'hora_fin' => $data['hora_fin'],

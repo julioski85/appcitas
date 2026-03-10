@@ -28,6 +28,9 @@ class CitaController extends Controller
             $data['origen'] = 'sucursal';
         }
 
+        $codigoPromocion = trim((string)($input['codigo_promocion'] ?? ''));
+        $data['codigo_promocion'] = $codigoPromocion === '' ? null : $codigoPromocion;
+
         if (strtotime($data['fecha'] . ' ' . $data['hora_fin']) <= strtotime($data['fecha'] . ' ' . $data['hora_inicio'])) {
             set_flash('error', 'La hora fin debe ser mayor a la hora inicio.');
             set_old($input);
@@ -77,6 +80,7 @@ class CitaController extends Controller
             'hora_fin' => $_GET['end'] ?? '10:30',
             'estatus' => 'agendada',
             'origen' => $user['rol'] === 'call_center' ? 'call_center' : ($user['rol'] === 'sucursal' ? 'sucursal' : 'web'),
+            'codigo_promocion' => '',
         ];
         $isEdit = false;
         $this->view('citas/form', compact('user', 'sucursales', 'cita', 'isEdit'));

@@ -75,6 +75,7 @@
                     <th>Cliente</th>
                     <th>Sucursal</th>
                     <th>Servicio</th>
+                    <th>Código promo</th>
                     <th>Estatus</th>
                     <th>Origen</th>
                     <th></th>
@@ -88,6 +89,7 @@
                     <td><?= e($cita['cliente_nombre']) ?><br><small><?= e($cita['cliente_telefono']) ?></small></td>
                     <td><?= e($cita['sucursal_nombre']) ?></td>
                     <td><?= e($cita['servicio']) ?></td>
+                    <td><?= e($cita['codigo_promocion'] ?: '—') ?></td>
                     <td><span class="badge badge-<?= e($cita['estatus']) ?>"><?= e($cita['estatus']) ?></span></td>
                     <td><?= e($cita['origen']) ?></td>
                     <td class="actions-cell">
