@@ -13,6 +13,7 @@ class Cita
         'Plasma rico en plaquetas',
         'Cámara hiperbárica',
         'Fisioterapia',
+        'Sueroterapia',
     ];
 
     public static function filtersForUser(array $user, array $filters = []): array

@@ -15,7 +15,7 @@ class CitaController extends Controller
     {
         $data = $this->validate([
             'sucursal_id' => 'required',
-            'servicio' => 'required|in:Consulta general,Ozonoterapia,Plasma rico en plaquetas,Cámara hiperbárica,Fisioterapia',
+            'servicio' => 'required|in:' . implode(',', Cita::SERVICIOS),
             'fecha' => 'required|date',
             'hora_inicio' => 'required|time',
             'hora_fin' => 'required|time',
