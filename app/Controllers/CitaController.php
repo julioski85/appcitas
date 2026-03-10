@@ -20,6 +20,7 @@ class CitaController extends Controller
             'hora_fin' => 'required|time',
             'estatus' => 'required|in:agendada,confirmada,asistio,no_asistio,cancelada,reprogramada',
             'origen' => 'required|in:call_center,sucursal,web',
+            'cliente_mode' => 'required|in:existente,manual',
         ], $input);
 
         if ($user['rol'] === 'sucursal') {
@@ -29,9 +30,16 @@ class CitaController extends Controller
 
         $codigoPromocion = trim((string)($input['codigo_promocion'] ?? ''));
         $data['codigo_promocion'] = $codigoPromocion === '' ? null : $codigoPromocion;
+        $clienteMode = $data['cliente_mode'];
         $data['cliente_id'] = trim((string)($input['cliente_id'] ?? ''));
 
-        if ($data['cliente_id'] !== '') {
+        if ($clienteMode === 'existente') {
+            if ($data['cliente_id'] === '') {
+                set_flash('error', 'Debes seleccionar un cliente existente válido de la lista.');
+                set_old($input);
+                back();
+            }
+
             $cliente = Cliente::find((int)$data['cliente_id']);
             if (!$cliente) {
                 set_flash('error', 'El cliente seleccionado no existe.');
@@ -45,6 +53,7 @@ class CitaController extends Controller
             $data['cliente_nombre'] = $cliente['nombre_completo'];
             $data['cliente_telefono'] = $cliente['telefono'];
         } else {
+            $data['cliente_id'] = '';
             $base = $this->validate([
                 'cliente_nombre' => 'required',
                 'cliente_telefono' => 'required',

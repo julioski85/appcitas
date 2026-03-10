@@ -25,10 +25,12 @@
                 <input type="text" class="cliente-search-input" placeholder="Buscar por nombre o teléfono" autocomplete="off" value="<?= e(old('cliente_display', (($cita['cliente_nombre'] ?? '') !== '' ? (($cita['cliente_nombre'] ?? '') . ' · ' . ($cita['cliente_telefono'] ?? '')) : ''))) ?>" data-cliente-search>
                 <div class="autocomplete-list" data-cliente-results></div>
             </div>
-            <small>Escribe al menos 2 caracteres para buscar.</small>
+            <div class="cliente-helper-row">
+                <small>Escribe al menos 2 caracteres para buscar.</small>
+                <small data-cliente-selected-hint style="display:none;">Cliente seleccionado para esta cita.</small>
+            </div>
             <small data-cliente-search-feedback></small>
-            <small data-cliente-selected-hint style="display:none;">Cliente seleccionado para esta cita.</small>
-            <div class="inline-actions" style="margin-top:10px;">
+            <div class="inline-actions">
                 <button type="button" class="btn btn-outline btn-sm" data-open-prospect-modal>Nuevo prospecto</button>
             </div>
         </div>
@@ -70,8 +72,20 @@
             <div class="form-group"><label>Ciudad</label><input name="nuevo_ciudad"></div>
             <div class="form-group"><label>Origen</label><select name="nuevo_origen"><option value="Redes sociales">Redes sociales</option><option value="Programa de televisión">Programa de televisión</option><option value="Google">Google</option><option value="Otros">Otros</option></select></div>
             <div class="form-group span-2"><label>Notas</label><textarea name="nuevo_notas"></textarea></div>
-            <div class="form-group span-2"><label><input type="checkbox" name="nuevo_tiene_responsable" value="1" data-responsable-toggle> ¿Tiene contacto responsable?</label></div>
-            <div class="responsable-fields span-2" data-responsable-fields><div class="form-grid two"><div class="form-group"><label>Nombre responsable</label><input name="nuevo_responsable_nombre" data-responsable-input></div><div class="form-group"><label>Teléfono responsable</label><input name="nuevo_responsable_telefono" data-responsable-input></div><div class="form-group"><label>Parentesco</label><input name="nuevo_responsable_parentesco" data-responsable-input></div></div></div>
+
+            <div class="form-group span-2">
+                <label class="switch-field">
+                    <input type="checkbox" name="nuevo_tiene_responsable" value="1" data-responsable-toggle>
+                    <span>¿Tiene contacto responsable?</span>
+                </label>
+            </div>
+            <div class="responsable-fields span-2" data-responsable-fields>
+                <div class="form-grid two">
+                    <div class="form-group"><label>Nombre responsable</label><input name="nuevo_responsable_nombre" data-responsable-input></div>
+                    <div class="form-group"><label>Teléfono responsable</label><input name="nuevo_responsable_telefono" data-responsable-input></div>
+                    <div class="form-group"><label>Parentesco</label><input name="nuevo_responsable_parentesco" data-responsable-input></div>
+                </div>
+            </div>
             <div class="form-actions span-2">
                 <small data-prospect-feedback></small>
                 <button type="submit" class="btn btn-primary">Guardar prospecto</button>

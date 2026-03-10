@@ -245,18 +245,32 @@ small{color:var(--muted)}
 
 .responsable-fields{display:none}
 
+
+.cliente-existente-group{align-content:start;gap:10px}
+.cliente-search-input{min-height:46px}
+.cliente-helper-row{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap}
+[data-cliente-search-feedback]{min-height:20px;display:block}
+[data-cliente-search-feedback].is-error{color:var(--danger)}
+[data-cliente-selected-hint]{color:var(--success)}
+[data-prospect-feedback]{min-height:20px;display:inline-block}
+
+.switch-field{display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--border);border-radius:14px;background:var(--card);color:var(--text);font-weight:700;line-height:1.25}
+.switch-field input[type="checkbox"]{width:18px;height:18px;margin:0;accent-color:var(--primary);cursor:pointer}
+.switch-field span{color:var(--text)}
+
 .autocomplete{position:relative}
 .autocomplete-list{position:absolute;left:0;right:0;top:calc(100% + 6px);background:var(--card);border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow);display:none;max-height:240px;overflow:auto;z-index:30}
 .autocomplete-item{display:block;width:100%;padding:10px 12px;text-align:left;background:transparent;border:none;color:var(--text);cursor:pointer}
 .autocomplete-item:hover{background:rgba(79,70,229,.10)}
+.autocomplete-item.no-click{cursor:default}
 .inline-actions{display:flex;gap:10px;align-items:center}
 .modal{position:fixed;inset:0;background:rgba(15,23,42,.55);display:none;align-items:center;justify-content:center;padding:18px;z-index:70}
 .modal.is-open{display:flex}
 .modal-dialog{width:min(860px,100%);max-height:92vh;overflow:auto;margin:0}
 .modal-head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:14px}
 
-.cliente-existente-group{align-content:start}
-.cliente-search-input{min-height:46px}
-[data-cliente-search-feedback].is-error{color:var(--danger)}
-[data-cliente-selected-hint]{color:var(--success)}
-[data-prospect-feedback]{min-height:20px;display:inline-block}
+@media (max-width: 860px){
+  .cliente-helper-row{flex-direction:column;align-items:flex-start}
+  .switch-field{padding:10px}
+}
+
