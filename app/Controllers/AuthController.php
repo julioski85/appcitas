@@ -33,6 +33,12 @@ class AuthController extends Controller
             redirect('/login');
         }
 
+        if ((int)($user['activo'] ?? 1) !== 1) {
+            set_flash('error', 'Tu usuario está inactivo. Contacta al administrador.');
+            set_old(['email' => $data['email']]);
+            redirect('/login');
+        }
+
         unset($user['password']);
         $_SESSION['user'] = $user;
         clear_old();

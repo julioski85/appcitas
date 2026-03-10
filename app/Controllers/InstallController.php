@@ -55,6 +55,7 @@ class InstallController extends Controller
                     password VARCHAR(255) NOT NULL,
                     rol ENUM('admin','call_center','sucursal') NOT NULL DEFAULT 'sucursal',
                     sucursal_id INT UNSIGNED NULL,
+                    activo TINYINT(1) NOT NULL DEFAULT 1,
                     created_at DATETIME NULL,
                     updated_at DATETIME NULL,
                     CONSTRAINT fk_usuarios_sucursal FOREIGN KEY (sucursal_id) REFERENCES sucursales(id) ON DELETE SET NULL
@@ -112,38 +113,41 @@ class InstallController extends Controller
             $rowUsers = Database::first("SELECT COUNT(*) AS total FROM usuarios");
             if ((int)($rowUsers['total'] ?? 0) === 0) {
                 Database::execute(
-                    "INSERT INTO usuarios (nombre, email, password, rol, sucursal_id, created_at, updated_at)
-                     VALUES (:nombre, :email, :password, :rol, :sucursal_id, NOW(), NOW())",
+                    "INSERT INTO usuarios (nombre, email, password, rol, sucursal_id, activo, created_at, updated_at)
+                     VALUES (:nombre, :email, :password, :rol, :sucursal_id, :activo, NOW(), NOW())",
                     [
-                        'nombre' => 'Administrador',
-                        'email' => 'admin@citas.local',
+                        'nombre' => 'Admin Demo',
+                        'email' => 'admin.demo@citas.local',
                         'password' => password_hash('Admin123!', PASSWORD_DEFAULT),
                         'rol' => 'admin',
                         'sucursal_id' => null,
+                        'activo' => 1,
                     ]
                 );
 
                 Database::execute(
-                    "INSERT INTO usuarios (nombre, email, password, rol, sucursal_id, created_at, updated_at)
-                     VALUES (:nombre, :email, :password, :rol, :sucursal_id, NOW(), NOW())",
+                    "INSERT INTO usuarios (nombre, email, password, rol, sucursal_id, activo, created_at, updated_at)
+                     VALUES (:nombre, :email, :password, :rol, :sucursal_id, :activo, NOW(), NOW())",
                     [
-                        'nombre' => 'Call Center',
-                        'email' => 'callcenter@citas.local',
+                        'nombre' => 'Call Center Demo',
+                        'email' => 'callcenter.demo@citas.local',
                         'password' => password_hash('Call123!', PASSWORD_DEFAULT),
                         'rol' => 'call_center',
                         'sucursal_id' => null,
+                        'activo' => 1,
                     ]
                 );
 
                 Database::execute(
-                    "INSERT INTO usuarios (nombre, email, password, rol, sucursal_id, created_at, updated_at)
-                     VALUES (:nombre, :email, :password, :rol, :sucursal_id, NOW(), NOW())",
+                    "INSERT INTO usuarios (nombre, email, password, rol, sucursal_id, activo, created_at, updated_at)
+                     VALUES (:nombre, :email, :password, :rol, :sucursal_id, :activo, NOW(), NOW())",
                     [
                         'nombre' => 'Sucursal Demo',
-                        'email' => 'sucursal1@citas.local',
+                        'email' => 'sucursal.demo@citas.local',
                         'password' => password_hash('Sucursal123!', PASSWORD_DEFAULT),
                         'rol' => 'sucursal',
                         'sucursal_id' => 1,
+                        'activo' => 1,
                     ]
                 );
             }
