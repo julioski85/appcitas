@@ -97,8 +97,9 @@
         <div class="month-date">${day}</div>
         <div class="month-events">`;
       dayEvents.slice(0, 4).forEach(ev => {
-        html += `<div class="event-pill" style="border-left-color:${ev.backgroundColor}">
-          <span>${ev.start.slice(11,16)}</span> ${ev.cliente_nombre}
+        const label = ev.is_block ? 'Bloqueo' : ev.cliente_nombre;
+        html += `<div class="event-pill ${ev.is_block ? 'event-pill-block' : ''}" style="border-left-color:${ev.backgroundColor}">
+          <span>${ev.start.slice(11,16)}</span> ${label}
         </div>`;
       });
       if (dayEvents.length > 4) {
@@ -140,13 +141,17 @@
       dates.forEach(d => {
         const key = ymd(d);
         const cellEvents = (byDate[key] || []).filter(ev => ev.start.slice(11,13) === pad(hour));
-        html += `<td class="time-slot"><a class="slot-link" href="${createLink(key, hourStr)}">+</a>`;
+        const hasBlock = (byDate[key] || []).some(ev => ev.is_block && ev.start.slice(11,16) < `${pad(hour+1)}:00` && ev.end.slice(11,16) > `${pad(hour)}:00`);
+        html += `<td class="time-slot">${hasBlock ? '' : `<a class=\"slot-link\" href=\"${createLink(key, hourStr)}\">+</a>`}`;
         cellEvents.forEach(ev => {
-          html += `<a class="time-event" href="${ev.url}" style="border-left-color:${ev.backgroundColor}">
+          const tag = ev.url && !ev.is_block ? 'a' : 'div';
+          const href = ev.url && !ev.is_block ? ` href=\"${ev.url}\"` : '';
+          const title = ev.is_block ? 'Horario no disponible' : ev.cliente_nombre;
+          html += `<${tag} class=\"time-event ${ev.is_block ? 'time-event-block' : ''}\"${href} style=\"border-left-color:${ev.backgroundColor}\">
             <strong>${ev.start.slice(11,16)}-${ev.end.slice(11,16)}</strong>
-            <span>${ev.cliente_nombre}</span>
+            <span>${title}</span>
             <small>${ev.servicio}</small>
-          </a>`;
+          </${tag}>`;
         });
         html += `</td>`;
       });

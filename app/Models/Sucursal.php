@@ -20,13 +20,14 @@ class Sucursal
     public static function create(array $data): bool
     {
         return Database::execute(
-            "INSERT INTO sucursales (nombre, direccion, telefono, color_calendario, created_at, updated_at)
-             VALUES (:nombre, :direccion, :telefono, :color, NOW(), NOW())",
+            "INSERT INTO sucursales (nombre, direccion, telefono, color_calendario, capacidad_simultanea, created_at, updated_at)
+             VALUES (:nombre, :direccion, :telefono, :color, :capacidad_simultanea, NOW(), NOW())",
             [
                 'nombre' => $data['nombre'],
                 'direccion' => $data['direccion'],
                 'telefono' => $data['telefono'],
                 'color' => $data['color_calendario'],
+                'capacidad_simultanea' => max(1, (int)$data['capacidad_simultanea']),
             ]
         );
     }
@@ -35,7 +36,7 @@ class Sucursal
     {
         return Database::execute(
             "UPDATE sucursales
-             SET nombre = :nombre, direccion = :direccion, telefono = :telefono, color_calendario = :color, updated_at = NOW()
+             SET nombre = :nombre, direccion = :direccion, telefono = :telefono, color_calendario = :color, capacidad_simultanea = :capacidad_simultanea, updated_at = NOW()
              WHERE id = :id",
             [
                 'id' => $id,
@@ -43,6 +44,7 @@ class Sucursal
                 'direccion' => $data['direccion'],
                 'telefono' => $data['telefono'],
                 'color' => $data['color_calendario'],
+                'capacidad_simultanea' => max(1, (int)$data['capacidad_simultanea']),
             ]
         );
     }

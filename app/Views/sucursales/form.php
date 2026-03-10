@@ -24,6 +24,10 @@
             <label>Color calendario</label>
             <input type="color" name="color_calendario" value="<?= e(old('color_calendario', $sucursal['color_calendario'] ?? '#4f46e5')) ?>" required>
         </div>
+        <div class="form-group">
+            <label>Capacidad simultánea</label>
+            <input type="number" min="1" step="1" name="capacidad_simultanea" value="<?= e(old('capacidad_simultanea', (string)($sucursal['capacidad_simultanea'] ?? '1'))) ?>" required>
+        </div>
         <div class="form-actions span-2">
             <a class="btn btn-outline" href="<?= e(url('/sucursales')) ?>">Volver</a>
             <button class="btn btn-primary" type="submit">Guardar</button>

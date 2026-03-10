@@ -274,3 +274,8 @@ small{color:var(--muted)}
   .switch-field{padding:10px}
 }
 
+
+.event-pill-block,
+.time-event-block {
+  background: rgba(239, 68, 68, 0.12);
+}

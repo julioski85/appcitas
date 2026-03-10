@@ -7,6 +7,7 @@ use App\Core\Controller;
 use App\Models\Cita;
 use App\Models\Cliente;
 use App\Models\Sucursal;
+use App\Models\BloqueoHorario;
 
 class CitaController extends Controller
 {
@@ -14,7 +15,7 @@ class CitaController extends Controller
     {
         $data = $this->validate([
             'sucursal_id' => 'required',
-            'servicio' => 'required',
+            'servicio' => 'required|in:Consulta general,Ozonoterapia,Plasma rico en plaquetas,Cámara hiperbárica,Fisioterapia',
             'fecha' => 'required|date',
             'hora_inicio' => 'required|time',
             'hora_fin' => 'required|time',
@@ -68,8 +69,17 @@ class CitaController extends Controller
             back();
         }
 
-        if (Cita::hasConflict($data, $ignoreId)) {
-            set_flash('error', 'Ese horario ya está ocupado en la sucursal seleccionada.');
+        $sucursal = Sucursal::find((int)$data['sucursal_id']);
+        $capacidad = max(1, (int)($sucursal['capacidad_simultanea'] ?? 1));
+
+        if (Cita::hasCapacityConflict($data, $capacidad, $ignoreId)) {
+            set_flash('error', 'Ese horario no tiene cupo disponible en la sucursal seleccionada.');
+            set_old($input);
+            back();
+        }
+
+        if (BloqueoHorario::hasBlockingForRange((int)$data['sucursal_id'], $data['fecha'], $data['hora_inicio'], $data['hora_fin'])) {
+            set_flash('error', 'Ese horario no está disponible en la sucursal seleccionada.');
             set_old($input);
             back();
         }
@@ -106,7 +116,7 @@ class CitaController extends Controller
             'cliente_id' => '',
             'cliente_nombre' => '',
             'cliente_telefono' => '',
-            'servicio' => '',
+            'servicio' => 'Consulta general',
             'fecha' => $_GET['date'] ?? date('Y-m-d'),
             'hora_inicio' => $_GET['time'] ?? '10:00',
             'hora_fin' => $_GET['end'] ?? '10:30',
