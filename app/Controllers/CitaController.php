@@ -31,72 +31,26 @@ class CitaController extends Controller
         $data['codigo_promocion'] = $codigoPromocion === '' ? null : $codigoPromocion;
         $data['cliente_id'] = trim((string)($input['cliente_id'] ?? ''));
 
-        if (($input['cliente_mode'] ?? 'existente') === 'nuevo') {
-            $clienteData = $this->validate([
-                'nuevo_nombre_completo' => 'required',
-                'nuevo_telefono' => 'required',
-                'nuevo_sexo' => 'required|in:masculino,femenino,otro',
-                'nuevo_fecha_nacimiento' => 'date',
-                'nuevo_email' => 'email',
-                'nuevo_direccion' => '',
-                'nuevo_ciudad' => '',
-                'nuevo_origen' => '',
-                'nuevo_notas' => '',
-            ], $input);
-
-            $tieneResponsable = ($input['nuevo_tiene_responsable'] ?? '0') === '1' || ($input['nuevo_tiene_responsable'] ?? '') === 'on';
-            $responsableNombre = trim((string)($input['nuevo_responsable_nombre'] ?? ''));
-            $responsableTelefono = trim((string)($input['nuevo_responsable_telefono'] ?? ''));
-            $responsableParentesco = trim((string)($input['nuevo_responsable_parentesco'] ?? ''));
-
-            if ($tieneResponsable && ($responsableNombre === '' || $responsableTelefono === '' || $responsableParentesco === '')) {
-                set_flash('error', 'Completa los datos del contacto responsable del nuevo prospecto.');
+        if ($data['cliente_id'] !== '') {
+            $cliente = Cliente::find((int)$data['cliente_id']);
+            if (!$cliente) {
+                set_flash('error', 'El cliente seleccionado no existe.');
                 set_old($input);
                 back();
             }
-
-            $nuevoId = Cliente::create([
-                'sucursal_id' => $data['sucursal_id'],
-                'nombre_completo' => $clienteData['nuevo_nombre_completo'],
-                'telefono' => $clienteData['nuevo_telefono'],
-                'fecha_nacimiento' => $clienteData['nuevo_fecha_nacimiento'],
-                'sexo' => $clienteData['nuevo_sexo'],
-                'email' => $clienteData['nuevo_email'],
-                'direccion' => $clienteData['nuevo_direccion'],
-                'ciudad' => $clienteData['nuevo_ciudad'],
-                'origen' => $clienteData['nuevo_origen'],
-                'tiene_responsable' => $tieneResponsable ? '1' : '0',
-                'responsable_nombre' => $tieneResponsable ? $responsableNombre : '',
-                'responsable_telefono' => $tieneResponsable ? $responsableTelefono : '',
-                'responsable_parentesco' => $tieneResponsable ? $responsableParentesco : '',
-                'estatus_cliente' => 'prospecto',
-                'notas' => $clienteData['nuevo_notas'],
-            ]);
-            $data['cliente_id'] = (string)$nuevoId;
-            $data['cliente_nombre'] = $clienteData['nuevo_nombre_completo'];
-            $data['cliente_telefono'] = $clienteData['nuevo_telefono'];
-        } else {
-            if ($data['cliente_id'] !== '') {
-                $cliente = Cliente::find((int)$data['cliente_id']);
-                if (!$cliente) {
-                    set_flash('error', 'El cliente seleccionado no existe.');
-                    set_old($input);
-                    back();
-                }
-                if ($user['rol'] === 'sucursal' && (int)$cliente['sucursal_id'] !== (int)$user['sucursal_id']) {
-                    http_response_code(403);
-                    exit('No autorizado.');
-                }
-                $data['cliente_nombre'] = $cliente['nombre_completo'];
-                $data['cliente_telefono'] = $cliente['telefono'];
-            } else {
-                $base = $this->validate([
-                    'cliente_nombre' => 'required',
-                    'cliente_telefono' => 'required',
-                ], $input);
-                $data['cliente_nombre'] = $base['cliente_nombre'];
-                $data['cliente_telefono'] = $base['cliente_telefono'];
+            if ($user['rol'] === 'sucursal' && (int)$cliente['sucursal_id'] !== (int)$user['sucursal_id']) {
+                http_response_code(403);
+                exit('No autorizado.');
             }
+            $data['cliente_nombre'] = $cliente['nombre_completo'];
+            $data['cliente_telefono'] = $cliente['telefono'];
+        } else {
+            $base = $this->validate([
+                'cliente_nombre' => 'required',
+                'cliente_telefono' => 'required',
+            ], $input);
+            $data['cliente_nombre'] = $base['cliente_nombre'];
+            $data['cliente_telefono'] = $base['cliente_telefono'];
         }
 
         if (strtotime($data['fecha'] . ' ' . $data['hora_fin']) <= strtotime($data['fecha'] . ' ' . $data['hora_inicio'])) {
@@ -138,7 +92,6 @@ class CitaController extends Controller
     {
         $user = $this->requireAuth();
         $sucursales = Sucursal::all();
-        $clientes = Cliente::allForSelect($user, '');
         $cita = [
             'sucursal_id' => $_GET['sucursal_id'] ?? ($user['sucursal_id'] ?? ''),
             'cliente_id' => '',
@@ -153,7 +106,7 @@ class CitaController extends Controller
             'codigo_promocion' => '',
         ];
         $isEdit = false;
-        $this->view('citas/form', compact('user', 'sucursales', 'cita', 'isEdit', 'clientes'));
+        $this->view('citas/form', compact('user', 'sucursales', 'cita', 'isEdit'));
     }
 
     public function store(): void
@@ -172,7 +125,6 @@ class CitaController extends Controller
     {
         $user = $this->requireAuth();
         $sucursales = Sucursal::all();
-        $clientes = Cliente::allForSelect($user, '');
         $cita = Cita::find((int)$id);
 
         if (!$cita) {
@@ -186,7 +138,7 @@ class CitaController extends Controller
         }
 
         $isEdit = true;
-        $this->view('citas/form', compact('user', 'sucursales', 'cita', 'isEdit', 'clientes'));
+        $this->view('citas/form', compact('user', 'sucursales', 'cita', 'isEdit'));
     }
 
     public function update(string $id): void
@@ -253,4 +205,119 @@ class CitaController extends Controller
         set_flash('success', 'Cita cancelada.');
         redirect('/citas');
     }
+
+    public function searchClientes(): void
+    {
+        $user = $this->requireAuth();
+        $query = trim((string)($_GET['q'] ?? ''));
+        if (mb_strlen($query) < 2) {
+            $this->json(['ok' => true, 'data' => []]);
+        }
+
+        $items = Cliente::allForSelect($user, $query);
+        $data = array_map(static function (array $item): array {
+            return [
+                'id' => (int)$item['id'],
+                'nombre_completo' => $item['nombre_completo'],
+                'telefono' => $item['telefono'],
+                'display' => $item['nombre_completo'] . ' · ' . $item['telefono'],
+            ];
+        }, $items);
+
+        $this->json(['ok' => true, 'data' => $data]);
+    }
+
+    public function quickStoreProspecto(): void
+    {
+        $user = $this->requireAuth();
+        verify_csrf();
+
+        $payload = json_decode(file_get_contents('php://input'), true);
+        if (!is_array($payload)) {
+            $payload = $_POST;
+        }
+
+        $data = [
+            'sucursal_id' => trim((string)($payload['sucursal_id'] ?? '')),
+            'nuevo_nombre_completo' => trim((string)($payload['nuevo_nombre_completo'] ?? '')),
+            'nuevo_telefono' => trim((string)($payload['nuevo_telefono'] ?? '')),
+            'nuevo_sexo' => trim((string)($payload['nuevo_sexo'] ?? '')),
+            'nuevo_fecha_nacimiento' => trim((string)($payload['nuevo_fecha_nacimiento'] ?? '')),
+            'nuevo_email' => trim((string)($payload['nuevo_email'] ?? '')),
+            'nuevo_direccion' => trim((string)($payload['nuevo_direccion'] ?? '')),
+            'nuevo_ciudad' => trim((string)($payload['nuevo_ciudad'] ?? '')),
+            'nuevo_origen' => trim((string)($payload['nuevo_origen'] ?? '')),
+            'nuevo_notas' => trim((string)($payload['nuevo_notas'] ?? '')),
+        ];
+
+        if ($user['rol'] === 'sucursal') {
+            $data['sucursal_id'] = (string)$user['sucursal_id'];
+        }
+
+        if ($data['sucursal_id'] === '' || $data['nuevo_nombre_completo'] === '' || $data['nuevo_telefono'] === '' || $data['nuevo_sexo'] === '') {
+            $this->json(['ok' => false, 'message' => 'Completa los campos obligatorios del prospecto.'], 422);
+        }
+
+        if (!in_array($data['nuevo_sexo'], ['masculino', 'femenino', 'otro'], true)) {
+            $this->json(['ok' => false, 'message' => 'Sexo inválido.'], 422);
+        }
+
+        if ($data['nuevo_origen'] === '' || !in_array($data['nuevo_origen'], ['Redes sociales', 'Programa de televisión', 'Google', 'Otros'], true)) {
+            $this->json(['ok' => false, 'message' => 'Selecciona un origen válido.'], 422);
+        }
+
+        if ($data['nuevo_email'] !== '' && !filter_var($data['nuevo_email'], FILTER_VALIDATE_EMAIL)) {
+            $this->json(['ok' => false, 'message' => 'Correo inválido.'], 422);
+        }
+
+        $tieneResponsable = ($payload['nuevo_tiene_responsable'] ?? '0') === '1' || ($payload['nuevo_tiene_responsable'] ?? '') === 'on';
+        $responsableNombre = trim((string)($payload['nuevo_responsable_nombre'] ?? ''));
+        $responsableTelefono = trim((string)($payload['nuevo_responsable_telefono'] ?? ''));
+        $responsableParentesco = trim((string)($payload['nuevo_responsable_parentesco'] ?? ''));
+
+        if ($tieneResponsable && ($responsableNombre === '' || $responsableTelefono === '' || $responsableParentesco === '')) {
+            $this->json(['ok' => false, 'message' => 'Completa los datos del contacto responsable del nuevo prospecto.'], 422);
+        }
+
+        if (!$tieneResponsable) {
+            $responsableNombre = '';
+            $responsableTelefono = '';
+            $responsableParentesco = '';
+        }
+
+        $clienteId = Cliente::create([
+            'sucursal_id' => $data['sucursal_id'],
+            'nombre_completo' => $data['nuevo_nombre_completo'],
+            'telefono' => $data['nuevo_telefono'],
+            'fecha_nacimiento' => $data['nuevo_fecha_nacimiento'],
+            'sexo' => $data['nuevo_sexo'],
+            'email' => $data['nuevo_email'],
+            'direccion' => $data['nuevo_direccion'],
+            'ciudad' => $data['nuevo_ciudad'],
+            'origen' => $data['nuevo_origen'],
+            'tiene_responsable' => $tieneResponsable ? '1' : '0',
+            'responsable_nombre' => $responsableNombre,
+            'responsable_telefono' => $responsableTelefono,
+            'responsable_parentesco' => $responsableParentesco,
+            'estatus_cliente' => 'prospecto',
+            'notas' => $data['nuevo_notas'],
+        ]);
+
+        $cliente = Cliente::find($clienteId);
+        if (!$cliente) {
+            $this->json(['ok' => false, 'message' => 'No fue posible cargar el prospecto creado.'], 500);
+        }
+
+        $this->json([
+            'ok' => true,
+            'message' => 'Prospecto creado correctamente.',
+            'data' => [
+                'id' => (int)$cliente['id'],
+                'nombre_completo' => $cliente['nombre_completo'],
+                'telefono' => $cliente['telefono'],
+                'display' => $cliente['nombre_completo'] . ' · ' . $cliente['telefono'],
+            ],
+        ], 201);
+    }
+
 }
