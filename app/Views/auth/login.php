@@ -10,7 +10,7 @@
             <?= csrf_field() ?>
             <div class="form-group">
                 <label>Correo</label>
-                <input type="email" name="email" value="<?= e(old('email')) ?>" placeholder="admin@citas.local" required>
+                <input type="email" name="email" value="<?= e(old('email')) ?>" placeholder="admin.demo@citas.local" required>
             </div>
             <div class="form-group">
                 <label>Contraseña</label>
@@ -21,9 +21,9 @@
 
         <div class="login-help">
             <strong>Usuarios demo tras instalar:</strong><br>
-            Admin: admin@citas.local / Admin123!<br>
-            Call center: callcenter@citas.local / Call123!<br>
-            Sucursal: sucursal1@citas.local / Sucursal123!
+            Admin: admin.demo@citas.local / Admin123!<br>
+            Call center: callcenter.demo@citas.local / Call123!<br>
+            Sucursal: sucursal.demo@citas.local / Sucursal123!
         </div>
     </div>
 </section>

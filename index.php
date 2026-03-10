@@ -31,6 +31,7 @@ use App\Controllers\SucursalController;
 use App\Controllers\CitaController;
 use App\Controllers\ApiController;
 use App\Controllers\InstallController;
+use App\Controllers\UserController;
 
 $router = new Router();
 
@@ -55,6 +56,15 @@ $router->get('/citas/edit/{id}', [CitaController::class, 'edit']);
 $router->post('/citas/update/{id}', [CitaController::class, 'update']);
 $router->post('/citas/delete/{id}', [CitaController::class, 'delete']);
 $router->post('/citas/cancel/{id}', [CitaController::class, 'cancel']);
+
+$router->get('/users', [UserController::class, 'index']);
+$router->get('/users/create', [UserController::class, 'create']);
+$router->post('/users/store', [UserController::class, 'store']);
+$router->get('/users/edit/{id}', [UserController::class, 'edit']);
+$router->post('/users/update/{id}', [UserController::class, 'update']);
+$router->get('/users/password/{id}', [UserController::class, 'password']);
+$router->post('/users/password/{id}', [UserController::class, 'updatePassword']);
+$router->post('/users/toggle-active/{id}', [UserController::class, 'toggleActive']);
 
 $router->get('/api/sucursales', [ApiController::class, 'sucursales']);
 $router->get('/api/citas', [ApiController::class, 'citas']);

@@ -19,6 +19,7 @@ CREATE TABLE IF NOT EXISTS usuarios (
     password VARCHAR(255) NOT NULL,
     rol ENUM('admin','call_center','sucursal') NOT NULL DEFAULT 'sucursal',
     sucursal_id INT UNSIGNED NULL,
+    activo TINYINT(1) NOT NULL DEFAULT 1,
     created_at DATETIME NULL,
     updated_at DATETIME NULL,
     CONSTRAINT fk_usuarios_sucursal FOREIGN KEY (sucursal_id) REFERENCES sucursales(id) ON DELETE SET NULL
