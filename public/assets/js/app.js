@@ -22,6 +22,7 @@
     function sync() {
       const active = toggleEl.checked;
       block.style.display = active ? 'block' : 'none';
+      block.classList.toggle('is-visible', active);
       inputs.forEach((input) => {
         input.required = active;
         if (!active) input.value = '';
@@ -43,6 +44,8 @@
   const hiddenClienteId = citaForm.querySelector('[data-cliente-id]');
   const searchInput = citaForm.querySelector('[data-cliente-search]');
   const resultsBox = citaForm.querySelector('[data-cliente-results]');
+  const selectedHint = citaForm.querySelector('[data-cliente-selected-hint]');
+  const searchFeedback = citaForm.querySelector('[data-cliente-search-feedback]');
   const searchUrl = citaForm.dataset.clientSearchUrl || '';
 
   function syncMode() {
@@ -53,6 +56,19 @@
       el.querySelectorAll('input').forEach((i) => { i.required = mode === 'manual'; });
     });
     if (mode === 'manual' && hiddenClienteId) hiddenClienteId.value = '';
+    syncSelectedHint();
+  }
+
+  function setSearchFeedback(message, isError) {
+    if (!searchFeedback) return;
+    searchFeedback.textContent = message || '';
+    searchFeedback.classList.toggle('is-error', !!isError);
+  }
+
+  function syncSelectedHint() {
+    if (!selectedHint) return;
+    const hasCliente = hiddenClienteId && hiddenClienteId.value !== '';
+    selectedHint.style.display = hasCliente ? 'block' : 'none';
   }
 
   if (modeSel) {
@@ -65,31 +81,47 @@
     if (!searchUrl || query.length < 2) {
       resultsBox.innerHTML = '';
       resultsBox.style.display = 'none';
+      setSearchFeedback('');
       return;
     }
 
     const response = await fetch(searchUrl + '?q=' + encodeURIComponent(query), { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
-    const payload = await response.json();
+    let payload = null;
+    try {
+      payload = await response.json();
+    } catch (error) {
+      throw new Error('La respuesta del buscador no es JSON válido.');
+    }
+
+    if (!response.ok || !payload || !payload.ok) {
+      throw new Error((payload && payload.message) ? payload.message : 'No se pudo buscar clientes en este momento.');
+    }
+
     const items = payload && payload.data ? payload.data : [];
 
     if (!items.length) {
       resultsBox.innerHTML = '<div class="autocomplete-item">Sin coincidencias</div>';
       resultsBox.style.display = 'block';
+      setSearchFeedback('No encontramos clientes con ese dato.');
       return;
     }
 
     resultsBox.innerHTML = items.map((item) => '<button type="button" class="autocomplete-item" data-id="' + item.id + '" data-display="' + item.display.replace(/"/g, '&quot;') + '">' + item.display + '</button>').join('');
     resultsBox.style.display = 'block';
+    setSearchFeedback('');
   }
 
   if (searchInput && resultsBox) {
     searchInput.addEventListener('input', function () {
       if (hiddenClienteId) hiddenClienteId.value = '';
+      syncSelectedHint();
       clearTimeout(debounceTimer);
       debounceTimer = setTimeout(function () {
-        doSearch(searchInput.value.trim()).catch(function () {
-          resultsBox.innerHTML = '<div class="autocomplete-item">Error al buscar</div>';
+        doSearch(searchInput.value.trim()).catch(function (error) {
+          const message = (error && error.message) ? error.message : 'Error al buscar clientes.';
+          resultsBox.innerHTML = '<div class="autocomplete-item">' + message + '</div>';
           resultsBox.style.display = 'block';
+          setSearchFeedback(message, true);
         });
       }, 250);
     });
@@ -100,6 +132,8 @@
       if (hiddenClienteId) hiddenClienteId.value = target.dataset.id || '';
       searchInput.value = target.dataset.display || '';
       resultsBox.style.display = 'none';
+      setSearchFeedback('Cliente seleccionado correctamente.');
+      syncSelectedHint();
     });
 
     document.addEventListener('click', function (event) {
@@ -108,6 +142,8 @@
       }
     });
   }
+
+  syncSelectedHint();
 
   const modal = document.querySelector('[data-prospect-modal]');
   const openModalBtn = document.querySelector('[data-open-prospect-modal]');
@@ -122,7 +158,10 @@
     modal.setAttribute('aria-hidden', open ? 'false' : 'true');
   }
 
-  if (openModalBtn) openModalBtn.addEventListener('click', function () { setModal(true); });
+  if (openModalBtn) openModalBtn.addEventListener('click', function () {
+    setModal(true);
+    if (feedback) feedback.textContent = '';
+  });
   if (closeModalBtn) closeModalBtn.addEventListener('click', function () { setModal(false); });
   if (modal) {
     modal.addEventListener('click', function (event) {
@@ -153,6 +192,8 @@
         if (searchInput) searchInput.value = payload.data.display;
         if (modeSel) modeSel.value = 'existente';
         syncMode();
+        syncSelectedHint();
+        setSearchFeedback('Prospecto creado y seleccionado automáticamente.');
         prospectForm.reset();
         setModal(false);
       } catch (error) {
