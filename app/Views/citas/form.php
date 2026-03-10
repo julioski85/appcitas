@@ -18,14 +18,16 @@
 
         <div class="form-group"><label>Modo cliente</label><?php $mode = old('cliente_mode', (($cita['cliente_id'] ?? '') ? 'existente' : 'manual')); ?><select name="cliente_mode" data-cliente-mode><option value="existente" <?= selected($mode,'existente') ?>>Cliente existente</option><option value="manual" <?= selected($mode,'manual') ?>>Solo nombre/teléfono</option></select></div>
 
-        <div class="form-group" data-cliente-existente>
+        <div class="form-group cliente-existente-group" data-cliente-existente>
             <label>Cliente existente</label>
             <input type="hidden" name="cliente_id" value="<?= e(old('cliente_id', $cita['cliente_id'] ?? '')) ?>" data-cliente-id>
             <div class="autocomplete" data-cliente-autocomplete>
-                <input type="text" placeholder="Buscar por nombre o teléfono" autocomplete="off" value="<?= e(old('cliente_display', (($cita['cliente_nombre'] ?? '') !== '' ? (($cita['cliente_nombre'] ?? '') . ' · ' . ($cita['cliente_telefono'] ?? '')) : ''))) ?>" data-cliente-search>
+                <input type="text" class="cliente-search-input" placeholder="Buscar por nombre o teléfono" autocomplete="off" value="<?= e(old('cliente_display', (($cita['cliente_nombre'] ?? '') !== '' ? (($cita['cliente_nombre'] ?? '') . ' · ' . ($cita['cliente_telefono'] ?? '')) : ''))) ?>" data-cliente-search>
                 <div class="autocomplete-list" data-cliente-results></div>
             </div>
             <small>Escribe al menos 2 caracteres para buscar.</small>
+            <small data-cliente-search-feedback></small>
+            <small data-cliente-selected-hint style="display:none;">Cliente seleccionado para esta cita.</small>
             <div class="inline-actions" style="margin-top:10px;">
                 <button type="button" class="btn btn-outline btn-sm" data-open-prospect-modal>Nuevo prospecto</button>
             </div>

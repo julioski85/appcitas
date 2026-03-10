@@ -43,9 +43,9 @@ class ClienteController extends Controller
                 back();
             }
         } else {
-            $data['responsable_nombre'] = '';
-            $data['responsable_telefono'] = '';
-            $data['responsable_parentesco'] = '';
+            $data['responsable_nombre'] = null;
+            $data['responsable_telefono'] = null;
+            $data['responsable_parentesco'] = null;
         }
 
         if (!$isEdit && $data['estatus_cliente'] === '') {

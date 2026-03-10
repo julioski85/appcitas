@@ -214,17 +214,21 @@ class CitaController extends Controller
             $this->json(['ok' => true, 'data' => []]);
         }
 
-        $items = Cliente::allForSelect($user, $query);
-        $data = array_map(static function (array $item): array {
-            return [
-                'id' => (int)$item['id'],
-                'nombre_completo' => $item['nombre_completo'],
-                'telefono' => $item['telefono'],
-                'display' => $item['nombre_completo'] . ' · ' . $item['telefono'],
-            ];
-        }, $items);
+        try {
+            $items = Cliente::allForSelect($user, $query);
+            $data = array_map(static function (array $item): array {
+                return [
+                    'id' => (int)$item['id'],
+                    'nombre_completo' => $item['nombre_completo'],
+                    'telefono' => $item['telefono'],
+                    'display' => $item['nombre_completo'] . ' · ' . $item['telefono'],
+                ];
+            }, $items);
 
-        $this->json(['ok' => true, 'data' => $data]);
+            $this->json(['ok' => true, 'data' => $data]);
+        } catch (\Throwable $e) {
+            $this->json(['ok' => false, 'message' => 'Error de servidor al buscar clientes.'], 500);
+        }
     }
 
     public function quickStoreProspecto(): void
@@ -280,44 +284,48 @@ class CitaController extends Controller
         }
 
         if (!$tieneResponsable) {
-            $responsableNombre = '';
-            $responsableTelefono = '';
-            $responsableParentesco = '';
+            $responsableNombre = null;
+            $responsableTelefono = null;
+            $responsableParentesco = null;
         }
 
-        $clienteId = Cliente::create([
-            'sucursal_id' => $data['sucursal_id'],
-            'nombre_completo' => $data['nuevo_nombre_completo'],
-            'telefono' => $data['nuevo_telefono'],
-            'fecha_nacimiento' => $data['nuevo_fecha_nacimiento'],
-            'sexo' => $data['nuevo_sexo'],
-            'email' => $data['nuevo_email'],
-            'direccion' => $data['nuevo_direccion'],
-            'ciudad' => $data['nuevo_ciudad'],
-            'origen' => $data['nuevo_origen'],
-            'tiene_responsable' => $tieneResponsable ? '1' : '0',
-            'responsable_nombre' => $responsableNombre,
-            'responsable_telefono' => $responsableTelefono,
-            'responsable_parentesco' => $responsableParentesco,
-            'estatus_cliente' => 'prospecto',
-            'notas' => $data['nuevo_notas'],
-        ]);
+        try {
+            $clienteId = Cliente::create([
+                'sucursal_id' => $data['sucursal_id'],
+                'nombre_completo' => $data['nuevo_nombre_completo'],
+                'telefono' => $data['nuevo_telefono'],
+                'fecha_nacimiento' => $data['nuevo_fecha_nacimiento'],
+                'sexo' => $data['nuevo_sexo'],
+                'email' => $data['nuevo_email'],
+                'direccion' => $data['nuevo_direccion'],
+                'ciudad' => $data['nuevo_ciudad'],
+                'origen' => $data['nuevo_origen'],
+                'tiene_responsable' => $tieneResponsable ? '1' : '0',
+                'responsable_nombre' => $responsableNombre,
+                'responsable_telefono' => $responsableTelefono,
+                'responsable_parentesco' => $responsableParentesco,
+                'estatus_cliente' => 'prospecto',
+                'notas' => $data['nuevo_notas'],
+            ]);
 
-        $cliente = Cliente::find($clienteId);
-        if (!$cliente) {
-            $this->json(['ok' => false, 'message' => 'No fue posible cargar el prospecto creado.'], 500);
+            $cliente = Cliente::find($clienteId);
+            if (!$cliente) {
+                $this->json(['ok' => false, 'message' => 'No fue posible cargar el prospecto creado.'], 500);
+            }
+
+            $this->json([
+                'ok' => true,
+                'message' => 'Prospecto creado correctamente.',
+                'data' => [
+                    'id' => (int)$cliente['id'],
+                    'nombre_completo' => $cliente['nombre_completo'],
+                    'telefono' => $cliente['telefono'],
+                    'display' => $cliente['nombre_completo'] . ' · ' . $cliente['telefono'],
+                ],
+            ], 201);
+        } catch (\Throwable $e) {
+            $this->json(['ok' => false, 'message' => 'Error de servidor al crear el prospecto.'], 500);
         }
-
-        $this->json([
-            'ok' => true,
-            'message' => 'Prospecto creado correctamente.',
-            'data' => [
-                'id' => (int)$cliente['id'],
-                'nombre_completo' => $cliente['nombre_completo'],
-                'telefono' => $cliente['telefono'],
-                'display' => $cliente['nombre_completo'] . ' · ' . $cliente['telefono'],
-            ],
-        ], 201);
     }
 
 }
