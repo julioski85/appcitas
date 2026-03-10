@@ -26,6 +26,7 @@ $error = flash('error');
             <nav class="nav">
                 <a class="nav-link <?= current_path() === '/dashboard' ? 'active' : '' ?>" href="<?= e(url('/dashboard')) ?>">Dashboard</a>
                 <a class="nav-link <?= current_path() === '/citas' ? 'active' : '' ?>" href="<?= e(url('/citas')) ?>">Calendario y citas</a>
+                <a class="nav-link <?= str_starts_with(current_path(), '/clientes') ? 'active' : '' ?>" href="<?= e(url('/clientes')) ?>">Clientes</a>
                 <?php if ($user['rol'] === 'admin'): ?>
                     <a class="nav-link <?= str_starts_with(current_path(), '/sucursales') ? 'active' : '' ?>" href="<?= e(url('/sucursales')) ?>">Sucursales</a>
                     <a class="nav-link <?= str_starts_with(current_path(), '/users') ? 'active' : '' ?>" href="<?= e(url('/users')) ?>">Usuarios</a>

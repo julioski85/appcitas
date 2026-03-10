@@ -32,6 +32,7 @@ use App\Controllers\CitaController;
 use App\Controllers\ApiController;
 use App\Controllers\InstallController;
 use App\Controllers\UserController;
+use App\Controllers\ClienteController;
 
 $router = new Router();
 
@@ -57,6 +58,14 @@ $router->post('/citas/update/{id}', [CitaController::class, 'update']);
 $router->post('/citas/delete/{id}', [CitaController::class, 'delete']);
 $router->post('/citas/cancel/{id}', [CitaController::class, 'cancel']);
 
+
+$router->get('/clientes', [ClienteController::class, 'index']);
+$router->get('/clientes/create', [ClienteController::class, 'create']);
+$router->post('/clientes/store', [ClienteController::class, 'store']);
+$router->get('/clientes/{id}', [ClienteController::class, 'show']);
+$router->get('/clientes/edit/{id}', [ClienteController::class, 'edit']);
+$router->post('/clientes/update/{id}', [ClienteController::class, 'update']);
+
 $router->get('/users', [UserController::class, 'index']);
 $router->get('/users/create', [UserController::class, 'create']);
 $router->post('/users/store', [UserController::class, 'store']);
@@ -70,6 +79,9 @@ $router->get('/api/sucursales', [ApiController::class, 'sucursales']);
 $router->get('/api/citas', [ApiController::class, 'citas']);
 $router->post('/api/citas', [ApiController::class, 'storeCita']);
 $router->get('/api/horarios-disponibles', [ApiController::class, 'horariosDisponibles']);
+$router->get('/api/clientes', [ApiController::class, 'clientes']);
+$router->post('/api/clientes', [ApiController::class, 'storeCliente']);
+$router->get('/api/clientes/{id}', [ApiController::class, 'showCliente']);
 
 $router->get('/install', [InstallController::class, 'index']);
 $router->post('/install/run', [InstallController::class, 'run']);
