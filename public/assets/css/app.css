@@ -139,6 +139,10 @@ html[data-theme="dark"] .card{
 }
 .badge-agendada{background:rgba(79,70,229,.12);color:var(--primary)}
 .badge-cancelada{background:rgba(239,68,68,.12);color:var(--danger)}
+.badge-asistio{background:rgba(16,185,129,.12);color:var(--success)}
+.badge-confirmada{background:rgba(59,130,246,.12);color:#2563eb}
+.badge-no_asistio{background:rgba(245,158,11,.12);color:#b45309}
+.badge-reprogramada{background:rgba(139,92,246,.12);color:#6d28d9}
 .badge-atendida{background:rgba(16,185,129,.12);color:var(--success)}
 .btn{
   display:inline-flex;align-items:center;justify-content:center;gap:8px;
@@ -238,3 +242,5 @@ small{color:var(--muted)}
   .month-head{display:none}
   .month-cell{min-height:unset}
 }
+
+.responsable-fields{display:none}

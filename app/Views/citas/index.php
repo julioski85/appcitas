@@ -28,9 +28,9 @@
             <label>Estatus</label>
             <select name="estatus">
                 <option value="">Todos</option>
-                <option value="agendada" <?= selected($filters['estatus'], 'agendada') ?>>Agendada</option>
-                <option value="cancelada" <?= selected($filters['estatus'], 'cancelada') ?>>Cancelada</option>
-                <option value="atendida" <?= selected($filters['estatus'], 'atendida') ?>>Atendida</option>
+                <?php foreach (['agendada','confirmada','asistio','no_asistio','cancelada','reprogramada'] as $est): ?>
+                <option value="<?= e($est) ?>" <?= selected($filters['estatus'], $est) ?>><?= e($est) ?></option>
+                <?php endforeach; ?>
             </select>
         </div>
 

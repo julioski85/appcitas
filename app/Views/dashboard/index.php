@@ -21,6 +21,24 @@
         <div class="stat-label">Usuarios visibles</div>
         <div class="stat-value"><?= count($stats['porUsuario']) ?></div>
     </div>
+
+
+    <div class="card stat-card">
+        <div class="stat-label">Prospectos nuevos</div>
+        <div class="stat-value"><?= (int)$stats['prospectos_nuevos'] ?></div>
+    </div>
+    <div class="card stat-card">
+        <div class="stat-label">Clientes activos</div>
+        <div class="stat-value"><?= (int)$stats['clientes_activos'] ?></div>
+    </div>
+    <div class="card stat-card">
+        <div class="stat-label">Citas no asistidas</div>
+        <div class="stat-value"><?= (int)$stats['no_asistidas'] ?></div>
+    </div>
+    <div class="card stat-card">
+        <div class="stat-label">Conversión prospecto-cliente</div>
+        <div class="stat-value"><?= number_format((float)$stats['conversion'], 1) ?>%</div>
+    </div>
 </section>
 
 <section class="two-col">

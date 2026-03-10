@@ -74,6 +74,10 @@ class DashboardController extends Controller
                     ['id' => $branchId]
                 ),
                 'ultimas' => Cita::latest($user, []),
+                'prospectos_nuevos' => (int)(Database::first("SELECT COUNT(*) AS total FROM clientes WHERE estatus_cliente = 'prospecto' AND DATE_FORMAT(created_at, '%Y-%m') = DATE_FORMAT(CURDATE(), '%Y-%m') AND sucursal_id = :id", ['id' => $branchId])['total'] ?? 0),
+                'clientes_activos' => (int)(Database::first("SELECT COUNT(*) AS total FROM clientes WHERE estatus_cliente = 'cliente_activo' AND sucursal_id = :id", ['id' => $branchId])['total'] ?? 0),
+                'no_asistidas' => Cita::noAsistidasThisMonth($branchId),
+                'conversion' => (float)(Database::first("SELECT IFNULL((SUM(estatus_cliente IN ('asistio_primera_vez','cliente_activo')) / NULLIF(COUNT(*),0)) * 100, 0) AS tasa FROM clientes WHERE sucursal_id = :id", ['id' => $branchId])['tasa'] ?? 0),
             ];
         } else {
             $stats = [
@@ -83,6 +87,10 @@ class DashboardController extends Controller
                 'porUsuario' => User::countByUserThisMonth(),
                 'horarios' => Cita::horariosMasOcupados(),
                 'ultimas' => Cita::latest($user, []),
+                'prospectos_nuevos' => (int)(Database::first("SELECT COUNT(*) AS total FROM clientes WHERE estatus_cliente = 'prospecto' AND DATE_FORMAT(created_at, '%Y-%m') = DATE_FORMAT(CURDATE(), '%Y-%m')")['total'] ?? 0),
+                'clientes_activos' => (int)(Database::first("SELECT COUNT(*) AS total FROM clientes WHERE estatus_cliente = 'cliente_activo'")['total'] ?? 0),
+                'no_asistidas' => Cita::noAsistidasThisMonth(),
+                'conversion' => (float)(Database::first("SELECT IFNULL((SUM(estatus_cliente IN ('asistio_primera_vez','cliente_activo')) / NULLIF(COUNT(*),0)) * 100, 0) AS tasa FROM clientes")['tasa'] ?? 0),
             ];
         }
 
