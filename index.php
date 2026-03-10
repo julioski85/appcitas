@@ -57,6 +57,8 @@ $router->get('/citas/edit/{id}', [CitaController::class, 'edit']);
 $router->post('/citas/update/{id}', [CitaController::class, 'update']);
 $router->post('/citas/delete/{id}', [CitaController::class, 'delete']);
 $router->post('/citas/cancel/{id}', [CitaController::class, 'cancel']);
+$router->get('/citas/clientes/search', [CitaController::class, 'searchClientes']);
+$router->post('/citas/prospectos/quick-store', [CitaController::class, 'quickStoreProspecto']);
 
 
 $router->get('/clientes', [ClienteController::class, 'index']);

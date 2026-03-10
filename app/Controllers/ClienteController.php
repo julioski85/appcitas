@@ -19,7 +19,7 @@ class ClienteController extends Controller
             'email' => 'email',
             'direccion' => '',
             'ciudad' => '',
-            'origen' => '',
+            'origen' => 'in:Redes sociales,Programa de televisión,Google,Otros',
             'sucursal_id' => '',
             'notas' => '',
             'estatus_cliente' => 'required|in:prospecto,cita_agendada,asistio_primera_vez,cliente_activo,inactivo',

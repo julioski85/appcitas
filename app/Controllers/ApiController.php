@@ -177,7 +177,7 @@ class ApiController extends Controller
             'email' => trim((string)($payload['email'] ?? '')),
             'direccion' => trim((string)($payload['direccion'] ?? '')),
             'ciudad' => trim((string)($payload['ciudad'] ?? '')),
-            'origen' => trim((string)($payload['origen'] ?? 'api')),
+            'origen' => trim((string)($payload['origen'] ?? 'Otros')),
             'tiene_responsable' => $tieneResponsable ? '1' : '0',
             'responsable_nombre' => $tieneResponsable ? trim((string)$payload['responsable_nombre']) : '',
             'responsable_telefono' => $tieneResponsable ? trim((string)$payload['responsable_telefono']) : '',
@@ -188,6 +188,10 @@ class ApiController extends Controller
 
         if ($user['rol'] === 'sucursal') {
             $data['sucursal_id'] = (string)$user['sucursal_id'];
+        }
+
+        if ($data['origen'] !== '' && !in_array($data['origen'], ['Redes sociales', 'Programa de televisión', 'Google', 'Otros'], true)) {
+            $this->json(['ok' => false, 'message' => 'origen inválido.'], 422);
         }
 
         $id = Cliente::create($data);
