@@ -20,7 +20,7 @@
     const inputs = block.querySelectorAll('[data-responsable-input]');
 
     function sync() {
-      const active = toggleEl.checked;
+      const active = !!toggleEl.checked;
       block.style.display = active ? 'block' : 'none';
       block.classList.toggle('is-visible', active);
       inputs.forEach((input) => {
@@ -50,12 +50,24 @@
 
   function syncMode() {
     const mode = modeSel ? modeSel.value : 'manual';
-    existentes.forEach((el) => { el.style.display = mode === 'existente' ? 'block' : 'none'; });
-    manuales.forEach((el) => {
-      el.style.display = mode === 'manual' ? 'block' : 'none';
-      el.querySelectorAll('input').forEach((i) => { i.required = mode === 'manual'; });
+    const existingMode = mode === 'existente';
+
+    existentes.forEach((el) => {
+      el.style.display = existingMode ? 'grid' : 'none';
     });
-    if (mode === 'manual' && hiddenClienteId) hiddenClienteId.value = '';
+
+    manuales.forEach((el) => {
+      el.style.display = existingMode ? 'none' : 'grid';
+      el.querySelectorAll('input').forEach((input) => {
+        input.required = !existingMode;
+      });
+    });
+
+    if (!existingMode && hiddenClienteId) {
+      hiddenClienteId.value = '';
+      setSearchFeedback('');
+    }
+
     syncSelectedHint();
   }
 
@@ -71,22 +83,44 @@
     selectedHint.style.display = hasCliente ? 'block' : 'none';
   }
 
+  function sanitize(value) {
+    const text = value == null ? '' : String(value);
+    return text.replace(/[&<>'"]/g, function (char) {
+      if (char === '&') return '&amp;';
+      if (char === '<') return '&lt;';
+      if (char === '>') return '&gt;';
+      if (char === '"') return '&quot;';
+      return '&#39;';
+    });
+  }
+
   if (modeSel) {
     modeSel.addEventListener('change', syncMode);
     syncMode();
   }
 
   let debounceTimer;
+
   async function doSearch(query) {
-    if (!searchUrl || query.length < 2) {
+    if (!resultsBox) return;
+
+    if (!searchUrl) {
+      setSearchFeedback('Ruta de búsqueda de clientes no disponible.', true);
+      return;
+    }
+
+    if (query.length < 2) {
       resultsBox.innerHTML = '';
       resultsBox.style.display = 'none';
       setSearchFeedback('');
       return;
     }
 
-    const response = await fetch(searchUrl + '?q=' + encodeURIComponent(query), { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
-    let payload = null;
+    const response = await fetch(searchUrl + '?q=' + encodeURIComponent(query), {
+      headers: { 'X-Requested-With': 'XMLHttpRequest' },
+    });
+
+    let payload;
     try {
       payload = await response.json();
     } catch (error) {
@@ -97,16 +131,19 @@
       throw new Error((payload && payload.message) ? payload.message : 'No se pudo buscar clientes en este momento.');
     }
 
-    const items = payload && payload.data ? payload.data : [];
+    const items = Array.isArray(payload.data) ? payload.data : [];
 
     if (!items.length) {
-      resultsBox.innerHTML = '<div class="autocomplete-item">Sin coincidencias</div>';
+      resultsBox.innerHTML = '<div class="autocomplete-item no-click">Sin coincidencias</div>';
       resultsBox.style.display = 'block';
       setSearchFeedback('No encontramos clientes con ese dato.');
       return;
     }
 
-    resultsBox.innerHTML = items.map((item) => '<button type="button" class="autocomplete-item" data-id="' + item.id + '" data-display="' + item.display.replace(/"/g, '&quot;') + '">' + item.display + '</button>').join('');
+    resultsBox.innerHTML = items.map((item) => {
+      const display = sanitize(item.display || (item.nombre_completo + ' · ' + item.telefono));
+      return '<button type="button" class="autocomplete-item" data-id="' + sanitize(item.id) + '" data-display="' + display + '">' + display + '</button>';
+    }).join('');
     resultsBox.style.display = 'block';
     setSearchFeedback('');
   }
@@ -115,11 +152,13 @@
     searchInput.addEventListener('input', function () {
       if (hiddenClienteId) hiddenClienteId.value = '';
       syncSelectedHint();
+      setSearchFeedback('Selecciona un cliente de la lista para continuar.', false);
+
       clearTimeout(debounceTimer);
       debounceTimer = setTimeout(function () {
         doSearch(searchInput.value.trim()).catch(function (error) {
           const message = (error && error.message) ? error.message : 'Error al buscar clientes.';
-          resultsBox.innerHTML = '<div class="autocomplete-item">' + message + '</div>';
+          resultsBox.innerHTML = '<div class="autocomplete-item no-click">' + sanitize(message) + '</div>';
           resultsBox.style.display = 'block';
           setSearchFeedback(message, true);
         });
@@ -143,6 +182,18 @@
     });
   }
 
+  citaForm.addEventListener('submit', function (event) {
+    const isExistingMode = modeSel && modeSel.value === 'existente';
+    if (!isExistingMode) return;
+
+    const hasId = hiddenClienteId && hiddenClienteId.value !== '';
+    if (hasId) return;
+
+    event.preventDefault();
+    setSearchFeedback('Debes seleccionar un cliente existente válido de la lista.', true);
+    if (searchInput) searchInput.focus();
+  });
+
   syncSelectedHint();
 
   const modal = document.querySelector('[data-prospect-modal]');
@@ -158,18 +209,32 @@
     modal.setAttribute('aria-hidden', open ? 'false' : 'true');
   }
 
-  if (openModalBtn) openModalBtn.addEventListener('click', function () {
-    setModal(true);
-    if (feedback) feedback.textContent = '';
-  });
-  if (closeModalBtn) closeModalBtn.addEventListener('click', function () { setModal(false); });
+  if (openModalBtn && modal) {
+    openModalBtn.addEventListener('click', function () {
+      setModal(true);
+      if (feedback) feedback.textContent = '';
+    });
+  }
+
+  if (closeModalBtn && modal) {
+    closeModalBtn.addEventListener('click', function () {
+      setModal(false);
+    });
+  }
+
   if (modal) {
     modal.addEventListener('click', function (event) {
       if (event.target === modal) setModal(false);
     });
   }
 
+  document.addEventListener('keydown', function (event) {
+    if (event.key === 'Escape') setModal(false);
+  });
+
   if (prospectForm && prospectUrl) {
+    bindResponsableScope(prospectForm);
+
     prospectForm.addEventListener('submit', async function (event) {
       event.preventDefault();
       if (feedback) feedback.textContent = '';
@@ -181,23 +246,38 @@
       if (csrf) formData.append('_csrf', csrf.value);
 
       try {
-        const response = await fetch(prospectUrl, { method: 'POST', body: formData, headers: { 'X-Requested-With': 'XMLHttpRequest' } });
-        const payload = await response.json();
+        const response = await fetch(prospectUrl, {
+          method: 'POST',
+          body: formData,
+          headers: { 'X-Requested-With': 'XMLHttpRequest' },
+        });
+
+        let payload;
+        try {
+          payload = await response.json();
+        } catch (error) {
+          throw new Error('Respuesta inválida del servidor al crear prospecto.');
+        }
+
         if (!response.ok || !payload.ok) {
-          if (feedback) feedback.textContent = payload.message || 'No se pudo crear el prospecto';
+          if (feedback) feedback.textContent = payload.message || 'No se pudo crear el prospecto.';
           return;
         }
 
-        if (hiddenClienteId) hiddenClienteId.value = payload.data.id;
-        if (searchInput) searchInput.value = payload.data.display;
+        if (hiddenClienteId) hiddenClienteId.value = String(payload.data.id || '');
+        if (searchInput) searchInput.value = payload.data.display || '';
         if (modeSel) modeSel.value = 'existente';
+
         syncMode();
         syncSelectedHint();
         setSearchFeedback('Prospecto creado y seleccionado automáticamente.');
         prospectForm.reset();
+        bindResponsableScope(prospectForm);
         setModal(false);
       } catch (error) {
-        if (feedback) feedback.textContent = 'Error inesperado al guardar';
+        if (feedback) {
+          feedback.textContent = (error && error.message) ? error.message : 'Error inesperado al guardar prospecto.';
+        }
       }
     });
   }
