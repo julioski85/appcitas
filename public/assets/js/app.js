@@ -281,4 +281,30 @@
       }
     });
   }
+
+  const bloqueoForm = document.querySelector('[data-bloqueo-form]');
+  if (bloqueoForm) {
+    const tipo = bloqueoForm.querySelector('[data-tipo-bloqueo]');
+    const fechaGroup = bloqueoForm.querySelector('[data-bloqueo-fecha]');
+    const diaGroup = bloqueoForm.querySelector('[data-bloqueo-dia]');
+    const fechaInput = fechaGroup ? fechaGroup.querySelector('input') : null;
+    const diaInput = diaGroup ? diaGroup.querySelector('select') : null;
+
+    function syncBloqueoType() {
+      const value = tipo ? tipo.value : 'fecha_especifica';
+      const showFecha = value === 'fecha_especifica';
+      const showDia = value === 'recurrente_semanal';
+
+      if (fechaGroup) fechaGroup.style.display = showFecha ? 'grid' : 'none';
+      if (diaGroup) diaGroup.style.display = showDia ? 'grid' : 'none';
+      if (fechaInput) fechaInput.required = showFecha;
+      if (diaInput) diaInput.required = showDia;
+    }
+
+    if (tipo) {
+      tipo.addEventListener('change', syncBloqueoType);
+      syncBloqueoType();
+    }
+  }
+
 })();

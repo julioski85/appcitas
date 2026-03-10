@@ -32,6 +32,7 @@ class SucursalController extends Controller
             'direccion' => 'required',
             'telefono' => 'required',
             'color_calendario' => 'required',
+            'capacidad_simultanea' => 'required',
         ], $_POST);
 
         Sucursal::create($data);
@@ -60,6 +61,7 @@ class SucursalController extends Controller
             'direccion' => 'required',
             'telefono' => 'required',
             'color_calendario' => 'required',
+            'capacidad_simultanea' => 'required',
         ], $_POST);
 
         Sucursal::update((int)$id, $data);

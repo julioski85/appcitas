@@ -33,6 +33,7 @@ use App\Controllers\ApiController;
 use App\Controllers\InstallController;
 use App\Controllers\UserController;
 use App\Controllers\ClienteController;
+use App\Controllers\BloqueoHorarioController;
 
 $router = new Router();
 
@@ -68,6 +69,15 @@ $router->get('/clientes/{id}', [ClienteController::class, 'show']);
 $router->get('/clientes/edit/{id}', [ClienteController::class, 'edit']);
 $router->post('/clientes/update/{id}', [ClienteController::class, 'update']);
 
+
+$router->get('/bloqueos-horario', [BloqueoHorarioController::class, 'index']);
+$router->get('/bloqueos-horario/create', [BloqueoHorarioController::class, 'create']);
+$router->post('/bloqueos-horario/store', [BloqueoHorarioController::class, 'store']);
+$router->get('/bloqueos-horario/edit/{id}', [BloqueoHorarioController::class, 'edit']);
+$router->post('/bloqueos-horario/update/{id}', [BloqueoHorarioController::class, 'update']);
+$router->post('/bloqueos-horario/delete/{id}', [BloqueoHorarioController::class, 'delete']);
+$router->post('/bloqueos-horario/toggle/{id}', [BloqueoHorarioController::class, 'toggle']);
+
 $router->get('/users', [UserController::class, 'index']);
 $router->get('/users/create', [UserController::class, 'create']);
 $router->post('/users/store', [UserController::class, 'store']);
@@ -81,6 +91,8 @@ $router->get('/api/sucursales', [ApiController::class, 'sucursales']);
 $router->get('/api/citas', [ApiController::class, 'citas']);
 $router->post('/api/citas', [ApiController::class, 'storeCita']);
 $router->get('/api/horarios-disponibles', [ApiController::class, 'horariosDisponibles']);
+$router->get('/api/bloqueos', [ApiController::class, 'bloqueos']);
+$router->post('/api/bloqueos', [ApiController::class, 'storeBloqueo']);
 $router->get('/api/clientes', [ApiController::class, 'clientes']);
 $router->post('/api/clientes', [ApiController::class, 'storeCliente']);
 $router->get('/api/clientes/{id}', [ApiController::class, 'showCliente']);

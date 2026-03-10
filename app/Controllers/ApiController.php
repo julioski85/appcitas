@@ -7,6 +7,7 @@ use App\Core\Controller;
 use App\Models\Cita;
 use App\Models\Cliente;
 use App\Models\Sucursal;
+use App\Models\BloqueoHorario;
 
 class ApiController extends Controller
 {
@@ -65,8 +66,56 @@ class ApiController extends Controller
                 'backgroundColor' => $event['color_calendario'],
                 'borderColor' => $event['color_calendario'],
                 'url' => url('/citas/edit/' . $event['id']),
+                'is_block' => false,
             ];
         }, $events);
+
+        $bloqueos = BloqueoHorario::allActiveForCalendar($user, [
+            'start' => $start,
+            'end' => $end,
+            'sucursal_id' => $sucursalId,
+        ]);
+
+        foreach ($bloqueos as $bloqueo) {
+            $fechas = [];
+            if ($bloqueo['tipo_bloqueo'] === 'fecha_especifica' && !empty($bloqueo['fecha'])) {
+                $fechas[] = $bloqueo['fecha'];
+            } else {
+                $cursor = strtotime($start);
+                $to = strtotime($end);
+                while ($cursor <= $to) {
+                    $f = date('Y-m-d', $cursor);
+                    if ($bloqueo['tipo_bloqueo'] === 'recurrente_diario') {
+                        $fechas[] = $f;
+                    } elseif ($bloqueo['tipo_bloqueo'] === 'recurrente_semanal' && (int)date('N', $cursor) === (int)$bloqueo['dia_semana']) {
+                        $fechas[] = $f;
+                    }
+                    $cursor = strtotime('+1 day', $cursor);
+                }
+            }
+
+            foreach ($fechas as $f) {
+                $payload[] = [
+                    'id' => 'block-' . $bloqueo['id'] . '-' . $f,
+                    'title' => 'Bloqueo: ' . ($bloqueo['motivo'] ?: $bloqueo['tipo_bloqueo']),
+                    'start' => $f . 'T' . substr($bloqueo['hora_inicio'], 0, 5),
+                    'end' => $f . 'T' . substr($bloqueo['hora_fin'], 0, 5),
+                    'status' => 'bloqueado',
+                    'origen' => 'sistema',
+                    'sucursal_id' => (int)$bloqueo['sucursal_id'],
+                    'sucursal_nombre' => $bloqueo['sucursal_nombre'],
+                    'cliente_id' => null,
+                    'cliente_nombre' => 'Horario no disponible',
+                    'cliente_telefono' => '',
+                    'servicio' => 'Bloqueo de horario',
+                    'codigo_promocion' => null,
+                    'backgroundColor' => '#ef4444',
+                    'borderColor' => '#ef4444',
+                    'url' => '',
+                    'is_block' => true,
+                ];
+            }
+        }
 
         $this->json(['ok' => true, 'data' => $payload]);
     }
@@ -129,12 +178,98 @@ class ApiController extends Controller
             $this->json(['ok' => false, 'message' => 'La hora fin debe ser mayor a la hora inicio.'], 422);
         }
 
-        if (Cita::hasConflict($data)) {
-            $this->json(['ok' => false, 'message' => 'Horario ocupado en esa sucursal.'], 409);
+        if (!in_array($data['servicio'], Cita::SERVICIOS, true)) {
+            $this->json(['ok' => false, 'message' => 'Servicio inválido.'], 422);
+        }
+
+        $sucursal = Sucursal::find((int)$data['sucursal_id']);
+        $capacidad = max(1, (int)($sucursal['capacidad_simultanea'] ?? 1));
+
+        if (Cita::hasCapacityConflict($data, $capacidad)) {
+            $this->json(['ok' => false, 'message' => 'Horario sin cupo en esa sucursal.'], 409);
+        }
+
+        if (BloqueoHorario::hasBlockingForRange((int)$data['sucursal_id'], $data['fecha'], $data['hora_inicio'], $data['hora_fin'])) {
+            $this->json(['ok' => false, 'message' => 'Ese horario no está disponible en la sucursal seleccionada.'], 409);
         }
 
         Cita::create($data, (int)$user['id']);
         $this->json(['ok' => true, 'message' => 'Cita creada correctamente.']);
+    }
+
+    public function bloqueos(): void
+    {
+        $user = $this->requireApiOrSession();
+        $filters = [
+            'sucursal_id' => $_GET['sucursal_id'] ?? '',
+            'tipo_bloqueo' => $_GET['tipo_bloqueo'] ?? '',
+        ];
+
+        if ($user['rol'] === 'sucursal') {
+            $filters['sucursal_id'] = (string)$user['sucursal_id'];
+        }
+
+        $this->json(['ok' => true, 'data' => BloqueoHorario::allForUser($user, $filters)]);
+    }
+
+    public function storeBloqueo(): void
+    {
+        $user = $this->requireApiOrSession();
+        if (!in_array($user['rol'], ['admin', 'sucursal'], true)) {
+            $this->json(['ok' => false, 'message' => 'No autorizado.'], 403);
+        }
+
+        $payload = json_decode(file_get_contents('php://input'), true);
+        if (!is_array($payload)) {
+            $payload = $_POST;
+        }
+
+        foreach (['sucursal_id', 'tipo_bloqueo', 'hora_inicio', 'hora_fin'] as $required) {
+            if (empty($payload[$required])) {
+                $this->json(['ok' => false, 'message' => "Falta el campo {$required}."], 422);
+            }
+        }
+
+        $data = [
+            'sucursal_id' => (string)$payload['sucursal_id'],
+            'tipo_bloqueo' => trim((string)$payload['tipo_bloqueo']),
+            'fecha' => trim((string)($payload['fecha'] ?? '')),
+            'dia_semana' => trim((string)($payload['dia_semana'] ?? '')),
+            'hora_inicio' => trim((string)$payload['hora_inicio']),
+            'hora_fin' => trim((string)$payload['hora_fin']),
+            'motivo' => trim((string)($payload['motivo'] ?? '')),
+            'activo' => array_key_exists('activo', $payload) ? (!empty($payload['activo']) ? '1' : '0') : '1',
+        ];
+
+        if ($user['rol'] === 'sucursal') {
+            $data['sucursal_id'] = (string)$user['sucursal_id'];
+        }
+
+        if (!in_array($data['tipo_bloqueo'], ['fecha_especifica', 'recurrente_diario', 'recurrente_semanal'], true)) {
+            $this->json(['ok' => false, 'message' => 'tipo_bloqueo inválido.'], 422);
+        }
+
+        if (strtotime('2000-01-01 ' . $data['hora_fin']) <= strtotime('2000-01-01 ' . $data['hora_inicio'])) {
+            $this->json(['ok' => false, 'message' => 'La hora fin debe ser mayor a hora inicio.'], 422);
+        }
+
+        if ($data['tipo_bloqueo'] === 'fecha_especifica' && ($data['fecha'] === '' || strtotime($data['fecha']) === false)) {
+            $this->json(['ok' => false, 'message' => 'fecha es obligatoria para fecha_especifica.'], 422);
+        }
+
+        if ($data['tipo_bloqueo'] === 'recurrente_semanal' && !in_array($data['dia_semana'], ['1', '2', '3', '4', '5', '6', '7'], true)) {
+            $this->json(['ok' => false, 'message' => 'dia_semana inválido para recurrente_semanal.'], 422);
+        }
+
+        if ($data['tipo_bloqueo'] !== 'fecha_especifica') {
+            $data['fecha'] = '';
+        }
+        if ($data['tipo_bloqueo'] !== 'recurrente_semanal') {
+            $data['dia_semana'] = '';
+        }
+
+        BloqueoHorario::create($data);
+        $this->json(['ok' => true, 'message' => 'Bloqueo creado correctamente.'], 201);
     }
 
     public function clientes(): void

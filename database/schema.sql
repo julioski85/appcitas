@@ -6,6 +6,7 @@ CREATE TABLE IF NOT EXISTS sucursales (
     direccion VARCHAR(255) NOT NULL,
     telefono VARCHAR(30) NOT NULL,
     color_calendario VARCHAR(20) NOT NULL DEFAULT '#4f46e5',
+    capacidad_simultanea INT NOT NULL DEFAULT 1,
     created_at DATETIME NULL,
     updated_at DATETIME NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
@@ -69,4 +70,24 @@ CREATE TABLE IF NOT EXISTS citas (
     CONSTRAINT fk_citas_sucursal FOREIGN KEY (sucursal_id) REFERENCES sucursales(id) ON DELETE CASCADE,
     CONSTRAINT fk_citas_cliente FOREIGN KEY (cliente_id) REFERENCES clientes(id) ON DELETE SET NULL,
     CONSTRAINT fk_citas_usuario FOREIGN KEY (creado_por) REFERENCES usuarios(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+
+CREATE TABLE IF NOT EXISTS bloqueos_horario (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    sucursal_id INT UNSIGNED NOT NULL,
+    tipo_bloqueo ENUM('fecha_especifica','recurrente_diario','recurrente_semanal') NOT NULL,
+    fecha DATE NULL,
+    dia_semana TINYINT UNSIGNED NULL,
+    hora_inicio TIME NOT NULL,
+    hora_fin TIME NOT NULL,
+    motivo VARCHAR(255) NULL,
+    activo TINYINT(1) NOT NULL DEFAULT 1,
+    created_at DATETIME NULL,
+    updated_at DATETIME NULL,
+    INDEX idx_bloqueos_sucursal (sucursal_id),
+    INDEX idx_bloqueos_tipo (tipo_bloqueo),
+    INDEX idx_bloqueos_fecha (fecha),
+    INDEX idx_bloqueos_dia_semana (dia_semana),
+    CONSTRAINT fk_bloqueos_sucursal FOREIGN KEY (sucursal_id) REFERENCES sucursales(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

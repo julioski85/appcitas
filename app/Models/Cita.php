@@ -7,6 +7,14 @@ use App\Core\Database;
 
 class Cita
 {
+    public const SERVICIOS = [
+        'Consulta general',
+        'Ozonoterapia',
+        'Plasma rico en plaquetas',
+        'Cámara hiperbárica',
+        'Fisioterapia',
+    ];
+
     public static function filtersForUser(array $user, array $filters = []): array
     {
         $where = [];
@@ -181,9 +189,9 @@ class Cita
         return $ok;
     }
 
-    public static function hasConflict(array $data, ?int $ignoreId = null): bool
+    public static function overlappingCount(array $data, ?int $ignoreId = null): int
     {
-        $sql = "SELECT id
+        $sql = "SELECT COUNT(*) AS total
                 FROM citas
                 WHERE sucursal_id = :sucursal_id
                   AND fecha = :fecha
@@ -202,9 +210,22 @@ class Cita
             $params['ignore_id'] = $ignoreId;
         }
 
-        $sql .= " LIMIT 1";
+        $row = Database::first($sql, $params);
+        return (int)($row['total'] ?? 0);
+    }
 
-        return Database::first($sql, $params) !== null;
+    public static function hasConflict(array $data, ?int $ignoreId = null): bool
+    {
+        return self::overlappingCount($data, $ignoreId) > 0;
+    }
+
+    public static function hasCapacityConflict(array $data, int $capacidadSimultanea, ?int $ignoreId = null): bool
+    {
+        if ($capacidadSimultanea <= 1) {
+            return self::hasConflict($data, $ignoreId);
+        }
+
+        return self::overlappingCount($data, $ignoreId) >= $capacidadSimultanea;
     }
 
     public static function citasPorDiaThisWeek(): array
@@ -265,23 +286,31 @@ class Cita
         );
 
         $slots = [];
+        $sucursal = Sucursal::find($sucursalId);
+        $capacidad = max(1, (int)($sucursal['capacidad_simultanea'] ?? 1));
         $current = strtotime($fecha . ' ' . $start);
         $last = strtotime($fecha . ' ' . $end);
 
         while ($current < $last) {
             $slotStart = date('H:i', $current);
             $slotEnd = date('H:i', strtotime("+{$interval} minutes", $current));
-            $available = true;
+            $ocupadas = 0;
             foreach ($events as $event) {
                 if ($slotStart < substr($event['hora_fin'], 0, 5) && $slotEnd > substr($event['hora_inicio'], 0, 5)) {
-                    $available = false;
-                    break;
+                    $ocupadas++;
                 }
             }
+
+            $bloqueado = BloqueoHorario::hasBlockingForRange($sucursalId, $fecha, $slotStart, $slotEnd);
+            $available = !$bloqueado && $ocupadas < $capacidad;
+
             $slots[] = [
                 'hora_inicio' => $slotStart,
                 'hora_fin' => $slotEnd,
                 'disponible' => $available,
+                'ocupadas' => $ocupadas,
+                'capacidad' => $capacidad,
+                'bloqueado' => $bloqueado,
             ];
             $current = strtotime("+{$interval} minutes", $current);
         }

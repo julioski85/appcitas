@@ -17,6 +17,7 @@
                     <th>Nombre</th>
                     <th>Dirección</th>
                     <th>Teléfono</th>
+                    <th>Capacidad</th>
                     <th></th>
                 </tr>
             </thead>
@@ -27,6 +28,7 @@
                     <td><?= e($sucursal['nombre']) ?></td>
                     <td><?= e($sucursal['direccion']) ?></td>
                     <td><?= e($sucursal['telefono']) ?></td>
+                    <td><?= e((string)($sucursal['capacidad_simultanea'] ?? 1)) ?></td>
                     <td class="actions-cell">
                         <a class="btn btn-outline btn-sm" href="<?= e(url('/sucursales/edit/' . $sucursal['id'])) ?>">Editar</a>
                         <form method="POST" action="<?= e(url('/sucursales/delete/' . $sucursal['id'])) ?>" onsubmit="return confirm('¿Eliminar sucursal?');">

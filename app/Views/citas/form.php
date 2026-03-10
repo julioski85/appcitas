@@ -38,7 +38,7 @@
         <div class="form-group" data-cliente-manual><label>Cliente</label><input type="text" name="cliente_nombre" value="<?= e(old('cliente_nombre', $cita['cliente_nombre'] ?? '')) ?>"></div>
         <div class="form-group" data-cliente-manual><label>Teléfono</label><input type="text" name="cliente_telefono" value="<?= e(old('cliente_telefono', $cita['cliente_telefono'] ?? '')) ?>"></div>
 
-        <div class="form-group"><label>Servicio</label><input type="text" name="servicio" value="<?= e(old('servicio', $cita['servicio'] ?? '')) ?>" required></div>
+        <div class="form-group"><label>Servicio</label><?php $servicio = old('servicio', $cita['servicio'] ?? 'Consulta general'); ?><select name="servicio" required><?php foreach (\App\Models\Cita::SERVICIOS as $itemServicio): ?><option value="<?= e($itemServicio) ?>" <?= selected($servicio, $itemServicio) ?>><?= e($itemServicio) ?></option><?php endforeach; ?></select></div>
         <div class="form-group"><label>Código de promoción</label><input type="text" name="codigo_promocion" value="<?= e(old('codigo_promocion', $cita['codigo_promocion'] ?? '')) ?>"></div>
         <div class="form-group"><label>Fecha</label><input type="date" name="fecha" value="<?= e(old('fecha', $cita['fecha'] ?? date('Y-m-d'))) ?>" required></div>
         <div class="form-group"><label>Hora inicio</label><input type="time" name="hora_inicio" value="<?= e(substr(old('hora_inicio', $cita['hora_inicio'] ?? '10:00'), 0, 5)) ?>" required></div>
