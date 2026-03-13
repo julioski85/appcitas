@@ -339,19 +339,42 @@
   }
 
   if (programaSelect && sucursalInput && programasUrl) {
+    function resetProgramasSelect(disabled) {
+      programaSelect.innerHTML = '<option value="">Sin programa</option>';
+      programaSelect.disabled = !!disabled;
+    }
+
     async function refreshProgramas() {
+      const sucursalId = (sucursalInput.value || '').trim();
+      if (!sucursalId) {
+        resetProgramasSelect(true);
+        return;
+      }
+
       const selected = programaSelect.value;
+      const selectedOption = programaSelect.options[programaSelect.selectedIndex] || null;
       const response = await fetch(programasUrl + '?sucursal_id=' + encodeURIComponent(sucursalInput.value), {
         headers: { 'X-Requested-With': 'XMLHttpRequest' },
       });
       const payload = await response.json();
-      if (!response.ok || !payload.ok) return;
+      if (!response.ok || !payload.ok) {
+        resetProgramasSelect(false);
+        return;
+      }
 
       const options = Array.isArray(payload.data) ? payload.data : [];
-      programaSelect.innerHTML = '<option value="">Sin programa</option>' + options.map((item) => {
+      let html = '<option value="">Sin programa</option>' + options.map((item) => {
         const selectedAttr = String(item.id) === String(selected) ? ' selected' : '';
         return '<option value="' + sanitize(item.id) + '"' + selectedAttr + '>' + sanitize(item.nombre) + '</option>';
       }).join('');
+
+      const selectedStillVisible = options.some((item) => String(item.id) === String(selected));
+      if (selected && !selectedStillVisible && selectedOption) {
+        html += '<option value="' + sanitize(selected) + '" selected>' + sanitize(selectedOption.textContent || 'Programa actual') + '</option>';
+      }
+
+      programaSelect.innerHTML = html;
+      programaSelect.disabled = false;
     }
 
     sucursalInput.addEventListener('change', function () {
@@ -360,6 +383,9 @@
     });
 
     syncHorarioSucursal();
+    refreshProgramas().catch(function () {
+      resetProgramasSelect(false);
+    });
   }
 
 
