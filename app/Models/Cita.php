@@ -294,6 +294,14 @@ class Cita
 
     public static function availableSlots(int $sucursalId, string $fecha, string $start = '08:00', string $end = '20:00', int $interval = 30): array
     {
+        $sucursal = Sucursal::find($sucursalId);
+        if (!$sucursal) {
+            return [];
+        }
+
+        $start = Sucursal::openingHour($sucursal);
+        $end = Sucursal::closingHour($sucursal);
+
         $events = Database::select(
             "SELECT hora_inicio, hora_fin
              FROM citas
@@ -305,7 +313,6 @@ class Cita
         );
 
         $slots = [];
-        $sucursal = Sucursal::find($sucursalId);
         $capacidad = max(1, (int)($sucursal['capacidad_simultanea'] ?? 1));
         $current = strtotime($fecha . ' ' . $start);
         $last = strtotime($fecha . ' ' . $end);

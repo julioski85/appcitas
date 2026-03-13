@@ -306,6 +306,38 @@
   const sucursalInput = citaForm.querySelector('[name="sucursal_id"]');
   const programasUrl = citaForm.dataset.programasUrl || '';
 
+
+  const horaInicioInput = citaForm.querySelector('[data-hora-inicio]');
+  const horaFinInput = citaForm.querySelector('[data-hora-fin]');
+
+  function syncHorarioSucursal() {
+    if (!horaInicioInput || !horaFinInput) return;
+
+    let openHour = '08:00';
+    let closeHour = '20:00';
+
+    if (sucursalInput && sucursalInput.tagName === 'SELECT') {
+      const selectedOption = sucursalInput.options[sucursalInput.selectedIndex];
+      if (selectedOption) {
+        openHour = (selectedOption.dataset.openHour || openHour).slice(0, 5);
+        closeHour = (selectedOption.dataset.closeHour || closeHour).slice(0, 5);
+      }
+    }
+
+    horaInicioInput.min = openHour;
+    horaInicioInput.max = closeHour;
+    horaFinInput.min = openHour;
+    horaFinInput.max = closeHour;
+
+    if (horaInicioInput.value && horaInicioInput.value < openHour) {
+      horaInicioInput.value = openHour;
+    }
+
+    if (horaFinInput.value && horaFinInput.value > closeHour) {
+      horaFinInput.value = closeHour;
+    }
+  }
+
   if (programaSelect && sucursalInput && programasUrl) {
     async function refreshProgramas() {
       const selected = programaSelect.value;
@@ -323,8 +355,17 @@
     }
 
     sucursalInput.addEventListener('change', function () {
+      syncHorarioSucursal();
       refreshProgramas().catch(function () {});
     });
+
+    syncHorarioSucursal();
+  }
+
+
+  if (sucursalInput && (!programaSelect || !programasUrl)) {
+    sucursalInput.addEventListener('change', syncHorarioSucursal);
+    syncHorarioSucursal();
   }
 
   const bloqueoForm = document.querySelector('[data-bloqueo-form]');

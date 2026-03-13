@@ -7,6 +7,8 @@ CREATE TABLE IF NOT EXISTS sucursales (
     telefono VARCHAR(30) NOT NULL,
     color_calendario VARCHAR(20) NOT NULL DEFAULT '#4f46e5',
     capacidad_simultanea INT NOT NULL DEFAULT 1,
+    hora_apertura TIME NOT NULL DEFAULT '08:00:00',
+    hora_cierre TIME NOT NULL DEFAULT '20:00:00',
     created_at DATETIME NULL,
     updated_at DATETIME NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

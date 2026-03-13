@@ -61,6 +61,8 @@
         data-create-url="<?= e(url('/citas/create')) ?>"
         data-sucursal="<?= e((string)$filters['sucursal_id']) ?>"
         data-estatus="<?= e((string)$filters['estatus']) ?>"
+        data-open-hour="<?= e($calendarOpenHour ?? '08:00') ?>"
+        data-close-hour="<?= e($calendarCloseHour ?? '20:00') ?>"
     ></div>
 </section>
 

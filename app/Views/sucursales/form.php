@@ -28,6 +28,14 @@
             <label>Capacidad simultánea</label>
             <input type="number" min="1" step="1" name="capacidad_simultanea" value="<?= e(old('capacidad_simultanea', (string)($sucursal['capacidad_simultanea'] ?? '1'))) ?>" required>
         </div>
+        <div class="form-group">
+            <label>Hora de apertura</label>
+            <input type="time" name="hora_apertura" value="<?= e(substr(old('hora_apertura', $sucursal['hora_apertura'] ?? '08:00'), 0, 5)) ?>" required>
+        </div>
+        <div class="form-group">
+            <label>Hora de cierre</label>
+            <input type="time" name="hora_cierre" value="<?= e(substr(old('hora_cierre', $sucursal['hora_cierre'] ?? '20:00'), 0, 5)) ?>" required>
+        </div>
         <div class="form-actions span-2">
             <a class="btn btn-outline" href="<?= e(url('/sucursales')) ?>">Volver</a>
             <button class="btn btn-primary" type="submit">Guardar</button>

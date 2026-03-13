@@ -7,6 +7,45 @@ use App\Core\Database;
 
 class Sucursal
 {
+    public static function normalizeBusinessHour(?string $time, string $fallback): string
+    {
+        $value = trim((string)$time);
+        if ($value === '') {
+            return $fallback;
+        }
+
+        $normalized = substr($value, 0, 5);
+        if (!preg_match('/^([01]\d|2[0-3]):[0-5]\d$/', $normalized)) {
+            return $fallback;
+        }
+
+        return $normalized;
+    }
+
+    public static function openingHour(array $sucursal): string
+    {
+        return self::normalizeBusinessHour($sucursal['hora_apertura'] ?? null, '08:00');
+    }
+
+    public static function closingHour(array $sucursal): string
+    {
+        return self::normalizeBusinessHour($sucursal['hora_cierre'] ?? null, '20:00');
+    }
+
+    public static function isRangeWithinBusinessHours(array $sucursal, string $horaInicio, string $horaFin): bool
+    {
+        $open = self::openingHour($sucursal);
+        $close = self::closingHour($sucursal);
+        $start = self::normalizeBusinessHour($horaInicio, '');
+        $end = self::normalizeBusinessHour($horaFin, '');
+
+        if ($start === '' || $end === '') {
+            return false;
+        }
+
+        return $start >= $open && $end <= $close;
+    }
+
     public static function all(): array
     {
         return Database::select("SELECT * FROM sucursales ORDER BY nombre ASC");
@@ -19,24 +58,32 @@ class Sucursal
 
     public static function create(array $data): bool
     {
+        $horaApertura = self::normalizeBusinessHour($data['hora_apertura'] ?? null, '08:00');
+        $horaCierre = self::normalizeBusinessHour($data['hora_cierre'] ?? null, '20:00');
+
         return Database::execute(
-            "INSERT INTO sucursales (nombre, direccion, telefono, color_calendario, capacidad_simultanea, created_at, updated_at)
-             VALUES (:nombre, :direccion, :telefono, :color, :capacidad_simultanea, NOW(), NOW())",
+            "INSERT INTO sucursales (nombre, direccion, telefono, color_calendario, capacidad_simultanea, hora_apertura, hora_cierre, created_at, updated_at)
+             VALUES (:nombre, :direccion, :telefono, :color, :capacidad_simultanea, :hora_apertura, :hora_cierre, NOW(), NOW())",
             [
                 'nombre' => $data['nombre'],
                 'direccion' => $data['direccion'],
                 'telefono' => $data['telefono'],
                 'color' => $data['color_calendario'],
                 'capacidad_simultanea' => max(1, (int)$data['capacidad_simultanea']),
+                'hora_apertura' => $horaApertura,
+                'hora_cierre' => $horaCierre,
             ]
         );
     }
 
     public static function update(int $id, array $data): bool
     {
+        $horaApertura = self::normalizeBusinessHour($data['hora_apertura'] ?? null, '08:00');
+        $horaCierre = self::normalizeBusinessHour($data['hora_cierre'] ?? null, '20:00');
+
         return Database::execute(
             "UPDATE sucursales
-             SET nombre = :nombre, direccion = :direccion, telefono = :telefono, color_calendario = :color, capacidad_simultanea = :capacidad_simultanea, updated_at = NOW()
+             SET nombre = :nombre, direccion = :direccion, telefono = :telefono, color_calendario = :color, capacidad_simultanea = :capacidad_simultanea, hora_apertura = :hora_apertura, hora_cierre = :hora_cierre, updated_at = NOW()
              WHERE id = :id",
             [
                 'id' => $id,
@@ -45,6 +92,8 @@ class Sucursal
                 'telefono' => $data['telefono'],
                 'color' => $data['color_calendario'],
                 'capacidad_simultanea' => max(1, (int)$data['capacidad_simultanea']),
+                'hora_apertura' => $horaApertura,
+                'hora_cierre' => $horaCierre,
             ]
         );
     }
