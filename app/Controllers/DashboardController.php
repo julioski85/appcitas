@@ -56,11 +56,12 @@ class DashboardController extends Controller
                 'porUsuario' => Database::select(
                     "SELECT u.nombre, COUNT(c.id) AS total
                      FROM usuarios u
-                     LEFT JOIN citas c ON c.creado_por = u.id
+                     INNER JOIN citas c ON c.creado_por = u.id
                        AND c.sucursal_id = :id
                        AND DATE_FORMAT(c.fecha, '%Y-%m') = DATE_FORMAT(CURDATE(), '%Y-%m')
                      WHERE u.sucursal_id = :id OR u.rol = 'admin'
                      GROUP BY u.id, u.nombre
+                     HAVING COUNT(c.id) > 0
                      ORDER BY total DESC, u.nombre ASC",
                     ['id' => $branchId]
                 ),
@@ -94,6 +95,12 @@ class DashboardController extends Controller
                 'conversion' => (float)(Database::first("SELECT IFNULL((SUM(estatus_cliente IN ('asistio_primera_vez','cliente_activo')) / NULLIF(COUNT(*),0)) * 100, 0) AS tasa FROM clientes")['tasa'] ?? 0),
             ];
         }
+
+
+        $stats['porUsuario'] = array_values(array_filter(
+            $stats['porUsuario'],
+            static fn(array $item): bool => (int)($item['total'] ?? 0) > 0
+        ));
 
         $this->view('dashboard/index', compact('stats', 'user'));
     }

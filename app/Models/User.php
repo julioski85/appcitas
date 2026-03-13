@@ -118,9 +118,10 @@ class User
         return Database::select(
             "SELECT u.nombre, COUNT(c.id) AS total
              FROM usuarios u
-             LEFT JOIN citas c ON c.creado_por = u.id
+             INNER JOIN citas c ON c.creado_por = u.id
                AND DATE_FORMAT(c.fecha, '%Y-%m') = DATE_FORMAT(CURDATE(), '%Y-%m')
              GROUP BY u.id, u.nombre
+             HAVING COUNT(c.id) > 0
              ORDER BY total DESC, u.nombre ASC"
         );
     }
