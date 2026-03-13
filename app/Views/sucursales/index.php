@@ -1,7 +1,7 @@
 <section class="page-head">
     <div>
         <h1>Sucursales</h1>
-        <p>Administra nombres, teléfonos, direcciones y color de calendario.</p>
+        <p>Administra nombres, teléfonos, direcciones, color y horarios de atención por sucursal.</p>
     </div>
     <div class="page-actions">
         <a class="btn btn-primary" href="<?= e(url('/sucursales/create')) ?>">Nueva sucursal</a>
@@ -18,6 +18,7 @@
                     <th>Dirección</th>
                     <th>Teléfono</th>
                     <th>Capacidad</th>
+                    <th>Horario</th>
                     <th></th>
                 </tr>
             </thead>
@@ -29,6 +30,7 @@
                     <td><?= e($sucursal['direccion']) ?></td>
                     <td><?= e($sucursal['telefono']) ?></td>
                     <td><?= e((string)($sucursal['capacidad_simultanea'] ?? 1)) ?></td>
+                    <td><?= e(substr((string)($sucursal['hora_apertura'] ?? '08:00'), 0, 5)) ?> - <?= e(substr((string)($sucursal['hora_cierre'] ?? '20:00'), 0, 5)) ?></td>
                     <td class="actions-cell">
                         <a class="btn btn-outline btn-sm" href="<?= e(url('/sucursales/edit/' . $sucursal['id'])) ?>">Editar</a>
                         <form method="POST" action="<?= e(url('/sucursales/delete/' . $sucursal['id'])) ?>" onsubmit="return confirm('¿Eliminar sucursal?');">

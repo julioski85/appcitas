@@ -33,7 +33,15 @@ class SucursalController extends Controller
             'telefono' => 'required',
             'color_calendario' => 'required',
             'capacidad_simultanea' => 'required',
+            'hora_apertura' => 'required|time',
+            'hora_cierre' => 'required|time',
         ], $_POST);
+
+        if (strtotime('2000-01-01 ' . $data['hora_cierre']) <= strtotime('2000-01-01 ' . $data['hora_apertura'])) {
+            set_flash('error', 'La hora de cierre debe ser mayor a la hora de apertura.');
+            set_old($_POST);
+            back();
+        }
 
         Sucursal::create($data);
         set_flash('success', 'Sucursal creada correctamente.');
@@ -62,7 +70,15 @@ class SucursalController extends Controller
             'telefono' => 'required',
             'color_calendario' => 'required',
             'capacidad_simultanea' => 'required',
+            'hora_apertura' => 'required|time',
+            'hora_cierre' => 'required|time',
         ], $_POST);
+
+        if (strtotime('2000-01-01 ' . $data['hora_cierre']) <= strtotime('2000-01-01 ' . $data['hora_apertura'])) {
+            set_flash('error', 'La hora de cierre debe ser mayor a la hora de apertura.');
+            set_old($_POST);
+            back();
+        }
 
         Sucursal::update((int)$id, $data);
         set_flash('success', 'Sucursal actualizada correctamente.');

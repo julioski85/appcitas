@@ -30,7 +30,13 @@ class ApiController extends Controller
     public function sucursales(): void
     {
         $this->requireApiOrSession();
-        $this->json(['ok' => true, 'data' => Sucursal::all()]);
+        $sucursales = array_map(static function (array $sucursal): array {
+            $sucursal['hora_apertura'] = Sucursal::openingHour($sucursal);
+            $sucursal['hora_cierre'] = Sucursal::closingHour($sucursal);
+            return $sucursal;
+        }, Sucursal::all());
+
+        $this->json(['ok' => true, 'data' => $sucursales]);
     }
 
     public function citas(): void
@@ -208,6 +214,14 @@ class ApiController extends Controller
         }
 
         $sucursal = Sucursal::find((int)$data['sucursal_id']);
+        if (!$sucursal) {
+            $this->json(['ok' => false, 'message' => 'sucursal_id inválido.'], 422);
+        }
+
+        if (!Sucursal::isRangeWithinBusinessHours($sucursal, $data['hora_inicio'], $data['hora_fin'])) {
+            $this->json(['ok' => false, 'message' => 'Horario fuera del rango permitido de la sucursal (' . Sucursal::openingHour($sucursal) . ' - ' . Sucursal::closingHour($sucursal) . ').'], 422);
+        }
+
         $capacidad = max(1, (int)($sucursal['capacidad_simultanea'] ?? 1));
 
         if (Cita::hasCapacityConflict($data, $capacidad)) {

@@ -11,6 +11,20 @@
   function pad(n) { return String(n).padStart(2, '0'); }
   function ymd(date) { return `${date.getFullYear()}-${pad(date.getMonth()+1)}-${pad(date.getDate())}`; }
   function formatHour(date) { return `${pad(date.getHours())}:${pad(date.getMinutes())}`; }
+  function dateAddMinutes(time, minutes) {
+    const [h, m] = String(time).split(':').map(Number);
+    const d = new Date(2000, 0, 1, h || 0, m || 0);
+    d.setMinutes(d.getMinutes() + minutes);
+    return `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  }
+
+  function clampHour(value, fallback) {
+    const normalized = String(value || '').slice(0, 5);
+    return /^([01]\d|2[0-3]):[0-5]\d$/.test(normalized) ? normalized : fallback;
+  }
+
+  const openHour = clampHour(app.dataset.openHour, '08:00');
+  const closeHour = clampHour(app.dataset.closeHour, '20:00');
 
   function rangeForView(date, view) {
     const d = new Date(date);
@@ -145,7 +159,10 @@
     });
     html += '</tr></thead><tbody>';
 
-    for (let hour = 8; hour < 20; hour++) {
+    const startHour = Number(openHour.slice(0, 2));
+    const endHour = Number(closeHour.slice(0, 2));
+
+    for (let hour = startHour; hour < endHour; hour++) {
       const hourStr = `${pad(hour)}:00`;
       html += `<tr><td class="time-col">${hourStr}</td>`;
       dates.forEach(d => {

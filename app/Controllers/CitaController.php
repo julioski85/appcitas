@@ -100,6 +100,18 @@ class CitaController extends Controller
         }
 
         $sucursal = Sucursal::find((int)$data['sucursal_id']);
+        if (!$sucursal) {
+            set_flash('error', 'La sucursal seleccionada no existe.');
+            set_old($input);
+            back();
+        }
+
+        if (!Sucursal::isRangeWithinBusinessHours($sucursal, $data['hora_inicio'], $data['hora_fin'])) {
+            set_flash('error', 'El horario está fuera del rango permitido de la sucursal (' . Sucursal::openingHour($sucursal) . ' - ' . Sucursal::closingHour($sucursal) . ').');
+            set_old($input);
+            back();
+        }
+
         $capacidad = max(1, (int)($sucursal['capacidad_simultanea'] ?? 1));
 
         if (Cita::hasCapacityConflict($data, $capacidad, $ignoreId)) {
@@ -132,15 +144,30 @@ class CitaController extends Controller
         }
 
         $sucursales = Sucursal::all();
+        $selectedSucursal = null;
+        if (!empty($filters['sucursal_id'])) {
+            $selectedSucursal = Sucursal::find((int)$filters['sucursal_id']);
+        } elseif ($user['rol'] === 'sucursal' && !empty($user['sucursal_id'])) {
+            $selectedSucursal = Sucursal::find((int)$user['sucursal_id']);
+        }
+
+        $calendarOpenHour = $selectedSucursal ? Sucursal::openingHour($selectedSucursal) : '08:00';
+        $calendarCloseHour = $selectedSucursal ? Sucursal::closingHour($selectedSucursal) : '20:00';
+
         $ultimasCitas = Cita::latest($user, $filters);
 
-        $this->view('citas/index', compact('user', 'filters', 'sucursales', 'ultimasCitas'));
+        $this->view('citas/index', compact('user', 'filters', 'sucursales', 'ultimasCitas', 'calendarOpenHour', 'calendarCloseHour'));
     }
 
     public function create(): void
     {
         $user = $this->requireAuth();
         $sucursales = Sucursal::all();
+        $sucursalInicial = (int)($_GET['sucursal_id'] ?? ($user['sucursal_id'] ?? 0));
+        $sucursalConfig = $sucursalInicial > 0 ? Sucursal::find($sucursalInicial) : null;
+        $defaultStart = $sucursalConfig ? Sucursal::openingHour($sucursalConfig) : '10:00';
+        $defaultEnd = date('H:i', strtotime('2000-01-01 ' . $defaultStart . ' +30 minutes'));
+
         $cita = [
             'sucursal_id' => $_GET['sucursal_id'] ?? ($user['sucursal_id'] ?? ''),
             'cliente_id' => '',
@@ -148,8 +175,8 @@ class CitaController extends Controller
             'cliente_telefono' => '',
             'servicio' => 'Consulta general',
             'fecha' => $_GET['date'] ?? date('Y-m-d'),
-            'hora_inicio' => $_GET['time'] ?? '10:00',
-            'hora_fin' => $_GET['end'] ?? '10:30',
+            'hora_inicio' => $_GET['time'] ?? $defaultStart,
+            'hora_fin' => $_GET['end'] ?? $defaultEnd,
             'estatus' => 'agendada',
             'origen' => $user['rol'] === 'call_center' ? 'call_center' : ($user['rol'] === 'sucursal' ? 'sucursal' : 'web'),
             'codigo_promocion' => '',
