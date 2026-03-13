@@ -282,6 +282,51 @@
     });
   }
 
+  const programaForm = document.querySelector('[data-programa-form]');
+  if (programaForm) {
+    const scopeSelect = programaForm.querySelector('[data-programa-scope]');
+    const sucursalGroup = programaForm.querySelector('[data-programa-sucursal]');
+    const sucursalSelect = sucursalGroup ? sucursalGroup.querySelector('select') : null;
+
+    function syncProgramaScope() {
+      if (!scopeSelect || !sucursalGroup || !sucursalSelect) return;
+      const isSucursal = scopeSelect.value === 'sucursal';
+      sucursalGroup.style.display = isSucursal ? 'grid' : 'none';
+      sucursalSelect.required = isSucursal;
+      if (!isSucursal) sucursalSelect.value = '';
+    }
+
+    if (scopeSelect) {
+      scopeSelect.addEventListener('change', syncProgramaScope);
+      syncProgramaScope();
+    }
+  }
+
+  const programaSelect = citaForm.querySelector('[data-programa-select]');
+  const sucursalInput = citaForm.querySelector('[name="sucursal_id"]');
+  const programasUrl = citaForm.dataset.programasUrl || '';
+
+  if (programaSelect && sucursalInput && programasUrl) {
+    async function refreshProgramas() {
+      const selected = programaSelect.value;
+      const response = await fetch(programasUrl + '?sucursal_id=' + encodeURIComponent(sucursalInput.value), {
+        headers: { 'X-Requested-With': 'XMLHttpRequest' },
+      });
+      const payload = await response.json();
+      if (!response.ok || !payload.ok) return;
+
+      const options = Array.isArray(payload.data) ? payload.data : [];
+      programaSelect.innerHTML = '<option value="">Sin programa</option>' + options.map((item) => {
+        const selectedAttr = String(item.id) === String(selected) ? ' selected' : '';
+        return '<option value="' + sanitize(item.id) + '"' + selectedAttr + '>' + sanitize(item.nombre) + '</option>';
+      }).join('');
+    }
+
+    sucursalInput.addEventListener('change', function () {
+      refreshProgramas().catch(function () {});
+    });
+  }
+
   const bloqueoForm = document.querySelector('[data-bloqueo-form]');
   if (bloqueoForm) {
     const tipo = bloqueoForm.querySelector('[data-tipo-bloqueo]');

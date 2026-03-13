@@ -48,6 +48,17 @@ CREATE TABLE IF NOT EXISTS clientes (
     CONSTRAINT fk_clientes_sucursal FOREIGN KEY (sucursal_id) REFERENCES sucursales(id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+CREATE TABLE IF NOT EXISTS programas (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    nombre VARCHAR(150) NOT NULL,
+    sucursal_id INT UNSIGNED NULL,
+    activo TINYINT(1) NOT NULL DEFAULT 1,
+    created_at DATETIME NULL,
+    updated_at DATETIME NULL,
+    INDEX idx_programas_sucursal_activo (sucursal_id, activo),
+    CONSTRAINT fk_programas_sucursal FOREIGN KEY (sucursal_id) REFERENCES sucursales(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
 CREATE TABLE IF NOT EXISTS citas (
     id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     sucursal_id INT UNSIGNED NOT NULL,
@@ -56,6 +67,7 @@ CREATE TABLE IF NOT EXISTS citas (
     cliente_telefono VARCHAR(30) NOT NULL,
     servicio VARCHAR(150) NOT NULL,
     codigo_promocion VARCHAR(100) NULL,
+    programa_id INT UNSIGNED NULL,
     fecha DATE NOT NULL,
     hora_inicio TIME NOT NULL,
     hora_fin TIME NOT NULL,
@@ -67,8 +79,10 @@ CREATE TABLE IF NOT EXISTS citas (
     INDEX idx_sucursal_fecha (sucursal_id, fecha),
     INDEX idx_fecha_horas (fecha, hora_inicio, hora_fin),
     INDEX idx_citas_cliente (cliente_id),
+    INDEX idx_citas_programa (programa_id),
     CONSTRAINT fk_citas_sucursal FOREIGN KEY (sucursal_id) REFERENCES sucursales(id) ON DELETE CASCADE,
     CONSTRAINT fk_citas_cliente FOREIGN KEY (cliente_id) REFERENCES clientes(id) ON DELETE SET NULL,
+    CONSTRAINT fk_citas_programa FOREIGN KEY (programa_id) REFERENCES programas(id) ON DELETE SET NULL,
     CONSTRAINT fk_citas_usuario FOREIGN KEY (creado_por) REFERENCES usuarios(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 

@@ -34,6 +34,7 @@ use App\Controllers\InstallController;
 use App\Controllers\UserController;
 use App\Controllers\ClienteController;
 use App\Controllers\BloqueoHorarioController;
+use App\Controllers\ProgramaController;
 
 $router = new Router();
 
@@ -59,6 +60,7 @@ $router->post('/citas/update/{id}', [CitaController::class, 'update']);
 $router->post('/citas/delete/{id}', [CitaController::class, 'delete']);
 $router->post('/citas/cancel/{id}', [CitaController::class, 'cancel']);
 $router->get('/citas/clientes/search', [CitaController::class, 'searchClientes']);
+$router->get('/citas/programas', [CitaController::class, 'programasPorSucursal']);
 $router->post('/citas/prospectos/quick-store', [CitaController::class, 'quickStoreProspecto']);
 
 
@@ -77,6 +79,14 @@ $router->get('/bloqueos-horario/edit/{id}', [BloqueoHorarioController::class, 'e
 $router->post('/bloqueos-horario/update/{id}', [BloqueoHorarioController::class, 'update']);
 $router->post('/bloqueos-horario/delete/{id}', [BloqueoHorarioController::class, 'delete']);
 $router->post('/bloqueos-horario/toggle/{id}', [BloqueoHorarioController::class, 'toggle']);
+
+
+$router->get('/programas', [ProgramaController::class, 'index']);
+$router->get('/programas/create', [ProgramaController::class, 'create']);
+$router->post('/programas/store', [ProgramaController::class, 'store']);
+$router->get('/programas/edit/{id}', [ProgramaController::class, 'edit']);
+$router->post('/programas/update/{id}', [ProgramaController::class, 'update']);
+$router->post('/programas/toggle/{id}', [ProgramaController::class, 'toggle']);
 
 $router->get('/users', [UserController::class, 'index']);
 $router->get('/users/create', [UserController::class, 'create']);

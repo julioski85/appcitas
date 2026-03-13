@@ -8,6 +8,7 @@ use App\Models\Cita;
 use App\Models\Cliente;
 use App\Models\Sucursal;
 use App\Models\BloqueoHorario;
+use App\Models\Programa;
 
 class ApiController extends Controller
 {
@@ -63,6 +64,8 @@ class ApiController extends Controller
                 'cliente_telefono' => $event['cliente_telefono'],
                 'servicio' => $event['servicio'],
                 'codigo_promocion' => $event['codigo_promocion'],
+                'programa_id' => $event['programa_id'] ? (int)$event['programa_id'] : null,
+                'programa_nombre' => $event['programa_nombre'],
                 'backgroundColor' => $event['color_calendario'],
                 'borderColor' => $event['color_calendario'],
                 'url' => url('/citas/edit/' . $event['id']),
@@ -109,6 +112,8 @@ class ApiController extends Controller
                     'cliente_telefono' => '',
                     'servicio' => 'Bloqueo de horario',
                     'codigo_promocion' => null,
+                    'programa_id' => null,
+                    'programa_nombre' => null,
                     'backgroundColor' => '#ef4444',
                     'borderColor' => '#ef4444',
                     'url' => '',
@@ -159,6 +164,7 @@ class ApiController extends Controller
             'cliente_telefono' => $clienteTelefono,
             'servicio' => trim((string)$payload['servicio']),
             'codigo_promocion' => null,
+            'programa_id' => trim((string)($payload['programa_id'] ?? '')),
             'fecha' => trim((string)$payload['fecha']),
             'hora_inicio' => trim((string)$payload['hora_inicio']),
             'hora_fin' => trim((string)$payload['hora_fin']),
@@ -185,6 +191,20 @@ class ApiController extends Controller
 
         if (!in_array($data['servicio'], Cita::SERVICIOS, true)) {
             $this->json(['ok' => false, 'message' => 'Servicio inválido.'], 422);
+        }
+
+
+        if ($data['programa_id'] !== '') {
+            $programa = Programa::find((int)$data['programa_id']);
+            if (!$programa) {
+                $this->json(['ok' => false, 'message' => 'programa_id inválido.'], 422);
+            }
+            if ((int)$programa['activo'] !== 1) {
+                $this->json(['ok' => false, 'message' => 'El programa seleccionado está inactivo.'], 422);
+            }
+            if (!empty($programa['sucursal_id']) && (int)$programa['sucursal_id'] !== (int)$data['sucursal_id']) {
+                $this->json(['ok' => false, 'message' => 'El programa no pertenece a la sucursal enviada.'], 422);
+            }
         }
 
         $sucursal = Sucursal::find((int)$data['sucursal_id']);
