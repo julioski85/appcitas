@@ -59,6 +59,7 @@ class DashboardController extends Controller
                      LEFT JOIN citas c ON c.creado_por = u.id
                        AND c.sucursal_id = :id
                        AND DATE_FORMAT(c.fecha, '%Y-%m') = DATE_FORMAT(CURDATE(), '%Y-%m')
+                     WHERE u.sucursal_id = :id OR u.rol = 'admin'
                      GROUP BY u.id, u.nombre
                      ORDER BY total DESC, u.nombre ASC",
                     ['id' => $branchId]

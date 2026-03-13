@@ -195,6 +195,7 @@ html[data-theme="dark"] .card{
   border-radius:18px;padding:12px;display:flex;flex-direction:column;gap:10px
 }
 .month-cell.muted{background:transparent;border-style:dashed}
+.month-cell-btn{width:100%;text-align:left;cursor:pointer;color:inherit;font:inherit}
 .month-date{font-size:14px;font-weight:800}
 .month-events{display:grid;gap:8px}
 .event-pill,.time-event{

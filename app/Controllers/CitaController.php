@@ -8,6 +8,7 @@ use App\Models\Cita;
 use App\Models\Cliente;
 use App\Models\Sucursal;
 use App\Models\BloqueoHorario;
+use App\Models\Programa;
 
 class CitaController extends Controller
 {
@@ -20,6 +21,7 @@ class CitaController extends Controller
             'hora_inicio' => 'required|time',
             'hora_fin' => 'required|time',
             'estatus' => 'required|in:agendada,confirmada,asistio,no_asistio,cancelada,reprogramada',
+            'programa_id' => '',
             'origen' => 'required|in:call_center,sucursal,web',
             'cliente_mode' => 'required|in:existente,manual',
         ], $input);
@@ -31,6 +33,7 @@ class CitaController extends Controller
 
         $codigoPromocion = trim((string)($input['codigo_promocion'] ?? ''));
         $data['codigo_promocion'] = $codigoPromocion === '' ? null : $codigoPromocion;
+        $data['programa_id'] = trim((string)($input['programa_id'] ?? ''));
         $clienteMode = $data['cliente_mode'];
         $data['cliente_id'] = trim((string)($input['cliente_id'] ?? ''));
 
@@ -74,6 +77,26 @@ class CitaController extends Controller
             set_flash('error', 'No se pueden agendar citas en fechas anteriores al día actual.');
             set_old($input);
             back();
+        }
+
+
+        if ($data['programa_id'] !== '') {
+            $programa = Programa::find((int)$data['programa_id']);
+            if (!$programa) {
+                set_flash('error', 'El programa seleccionado no existe.');
+                set_old($input);
+                back();
+            }
+            if ((int)$programa['activo'] !== 1) {
+                set_flash('error', 'El programa seleccionado está inactivo.');
+                set_old($input);
+                back();
+            }
+            if (!empty($programa['sucursal_id']) && (int)$programa['sucursal_id'] !== (int)$data['sucursal_id']) {
+                set_flash('error', 'El programa seleccionado no pertenece a la sucursal elegida.');
+                set_old($input);
+                back();
+            }
         }
 
         $sucursal = Sucursal::find((int)$data['sucursal_id']);
@@ -130,9 +153,12 @@ class CitaController extends Controller
             'estatus' => 'agendada',
             'origen' => $user['rol'] === 'call_center' ? 'call_center' : ($user['rol'] === 'sucursal' ? 'sucursal' : 'web'),
             'codigo_promocion' => '',
+            'programa_id' => '',
         ];
+        $sucursalPrograma = (int)($cita['sucursal_id'] ?: ($user['sucursal_id'] ?? 0));
+        $programas = $sucursalPrograma > 0 ? Programa::optionsForSucursal($sucursalPrograma) : [];
         $isEdit = false;
-        $this->view('citas/form', compact('user', 'sucursales', 'cita', 'isEdit'));
+        $this->view('citas/form', compact('user', 'sucursales', 'cita', 'isEdit', 'programas'));
     }
 
     public function store(): void
@@ -163,8 +189,9 @@ class CitaController extends Controller
             exit('No autorizado.');
         }
 
+        $programas = Programa::optionsForSucursal((int)$cita['sucursal_id'], !empty($cita['programa_id']) ? (int)$cita['programa_id'] : null);
         $isEdit = true;
-        $this->view('citas/form', compact('user', 'sucursales', 'cita', 'isEdit'));
+        $this->view('citas/form', compact('user', 'sucursales', 'cita', 'isEdit', 'programas'));
     }
 
     public function update(string $id): void
@@ -255,6 +282,22 @@ class CitaController extends Controller
         } catch (\Throwable $e) {
             $this->json(['ok' => false, 'message' => 'Error de servidor al buscar clientes.'], 500);
         }
+    }
+
+
+    public function programasPorSucursal(): void
+    {
+        $user = $this->requireAuth();
+        $sucursalId = (int)($_GET['sucursal_id'] ?? 0);
+        if ($user['rol'] === 'sucursal') {
+            $sucursalId = (int)$user['sucursal_id'];
+        }
+        if ($sucursalId <= 0) {
+            $this->json(['ok' => true, 'data' => []]);
+        }
+
+        $items = Programa::optionsForSucursal($sucursalId);
+        $this->json(['ok' => true, 'data' => $items]);
     }
 
     public function quickStoreProspecto(): void

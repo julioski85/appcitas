@@ -93,7 +93,7 @@
       const date = new Date(currentDate.getFullYear(), currentDate.getMonth(), day);
       const key = ymd(date);
       const dayEvents = byDate[key] || [];
-      html += `<a class="month-cell" href="${createLink(key, '')}">
+      html += `<button type="button" class="month-cell month-cell-btn" data-month-date="${key}">
         <div class="month-date">${day}</div>
         <div class="month-events">`;
       dayEvents.slice(0, 4).forEach(ev => {
@@ -105,7 +105,7 @@
       if (dayEvents.length > 4) {
         html += `<div class="event-more">+${dayEvents.length - 4} más</div>`;
       }
-      html += `</div></a>`;
+      html += `</div></button>`;
     }
 
     const cells = startOffset + daysInMonth;
@@ -113,6 +113,16 @@
     for (let i = 0; i < remaining; i++) html += '<div class="month-cell muted"></div>';
     html += '</div>';
     app.innerHTML = html;
+    app.querySelectorAll('[data-month-date]').forEach((btn) => {
+      btn.addEventListener('click', function () {
+        const value = btn.getAttribute('data-month-date');
+        if (!value) return;
+        const [year, month, day] = value.split('-').map(Number);
+        currentDate = new Date(year, month - 1, day);
+        currentView = 'day';
+        render();
+      });
+    });
   }
 
   function renderTimeGrid(events, view) {

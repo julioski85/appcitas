@@ -6,7 +6,7 @@
 </section>
 
 <section class="card form-card">
-    <form method="POST" action="<?= e($isEdit ? url('/citas/update/' . $cita['id']) : url('/citas/store')) ?>" class="form-grid two" data-cita-form data-client-search-url="<?= e(url('/citas/clientes/search')) ?>" data-prospect-url="<?= e(url('/citas/prospectos/quick-store')) ?>">
+    <form method="POST" action="<?= e($isEdit ? url('/citas/update/' . $cita['id']) : url('/citas/store')) ?>" class="form-grid two" data-cita-form data-client-search-url="<?= e(url('/citas/clientes/search')) ?>" data-prospect-url="<?= e(url('/citas/prospectos/quick-store')) ?>" data-programas-url="<?= e(url('/citas/programas')) ?>">
         <?= csrf_field() ?>
 
         <?php if ($user['rol'] !== 'sucursal'): ?>
@@ -40,6 +40,7 @@
 
         <div class="form-group"><label>Servicio</label><?php $servicio = old('servicio', $cita['servicio'] ?? 'Consulta general'); ?><select name="servicio" required><?php foreach (\App\Models\Cita::SERVICIOS as $itemServicio): ?><option value="<?= e($itemServicio) ?>" <?= selected($servicio, $itemServicio) ?>><?= e($itemServicio) ?></option><?php endforeach; ?></select></div>
         <div class="form-group"><label>Código de promoción</label><input type="text" name="codigo_promocion" value="<?= e(old('codigo_promocion', $cita['codigo_promocion'] ?? '')) ?>"></div>
+        <div class="form-group"><label>Programa (opcional)</label><?php $programaId = old('programa_id', (string)($cita['programa_id'] ?? '')); ?><select name="programa_id" data-programa-select><option value="">Sin programa</option><?php foreach (($programas ?? []) as $programa): ?><option value="<?= e($programa['id']) ?>" <?= selected($programaId, (string)$programa['id']) ?>><?= e($programa['nombre']) ?></option><?php endforeach; ?></select></div>
         <div class="form-group"><label>Fecha</label><input type="date" name="fecha" min="<?= e(date('Y-m-d')) ?>" value="<?= e(old('fecha', $cita['fecha'] ?? date('Y-m-d'))) ?>" required></div>
         <div class="form-group"><label>Hora inicio</label><input type="time" name="hora_inicio" value="<?= e(substr(old('hora_inicio', $cita['hora_inicio'] ?? '10:00'), 0, 5)) ?>" required></div>
         <div class="form-group"><label>Hora fin</label><input type="time" name="hora_fin" value="<?= e(substr(old('hora_fin', $cita['hora_fin'] ?? '10:30'), 0, 5)) ?>" required></div>

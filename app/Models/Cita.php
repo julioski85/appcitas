@@ -53,10 +53,11 @@ class Cita
         [$where, $params] = self::filtersForUser($user, $filters);
 
         return Database::select(
-            "SELECT c.*, s.nombre AS sucursal_nombre, s.color_calendario, cl.nombre_completo AS cliente_real_nombre
+            "SELECT c.*, s.nombre AS sucursal_nombre, s.color_calendario, cl.nombre_completo AS cliente_real_nombre, p.nombre AS programa_nombre
              FROM citas c
              INNER JOIN sucursales s ON s.id = c.sucursal_id
              LEFT JOIN clientes cl ON cl.id = c.cliente_id
+             LEFT JOIN programas p ON p.id = c.programa_id
              $where
              ORDER BY c.fecha ASC, c.hora_inicio ASC",
             $params
@@ -68,11 +69,12 @@ class Cita
         [$where, $params] = self::filtersForUser($user, $filters);
 
         return Database::select(
-            "SELECT c.*, s.nombre AS sucursal_nombre, s.color_calendario, u.nombre AS creador_nombre, cl.nombre_completo AS cliente_real_nombre
+            "SELECT c.*, s.nombre AS sucursal_nombre, s.color_calendario, u.nombre AS creador_nombre, cl.nombre_completo AS cliente_real_nombre, p.nombre AS programa_nombre
              FROM citas c
              INNER JOIN sucursales s ON s.id = c.sucursal_id
              LEFT JOIN usuarios u ON u.id = c.creado_por
              LEFT JOIN clientes cl ON cl.id = c.cliente_id
+             LEFT JOIN programas p ON p.id = c.programa_id
              $where
              ORDER BY c.fecha DESC, c.hora_inicio DESC
              LIMIT 20",
@@ -83,10 +85,11 @@ class Cita
     public static function find(int $id): ?array
     {
         return Database::first(
-            "SELECT c.*, s.nombre AS sucursal_nombre, cl.nombre_completo AS cliente_real_nombre, cl.telefono AS cliente_real_telefono
+            "SELECT c.*, s.nombre AS sucursal_nombre, cl.nombre_completo AS cliente_real_nombre, cl.telefono AS cliente_real_telefono, p.nombre AS programa_nombre
              FROM citas c
              INNER JOIN sucursales s ON s.id = c.sucursal_id
              LEFT JOIN clientes cl ON cl.id = c.cliente_id
+             LEFT JOIN programas p ON p.id = c.programa_id
              WHERE c.id = :id LIMIT 1",
             ['id' => $id]
         );
@@ -96,9 +99,9 @@ class Cita
     {
         Database::execute(
             "INSERT INTO citas
-             (sucursal_id, cliente_id, cliente_nombre, cliente_telefono, servicio, codigo_promocion, fecha, hora_inicio, hora_fin, estatus, creado_por, origen, created_at, updated_at)
+             (sucursal_id, cliente_id, cliente_nombre, cliente_telefono, servicio, codigo_promocion, programa_id, fecha, hora_inicio, hora_fin, estatus, creado_por, origen, created_at, updated_at)
              VALUES
-             (:sucursal_id, :cliente_id, :cliente_nombre, :cliente_telefono, :servicio, :codigo_promocion, :fecha, :hora_inicio, :hora_fin, :estatus, :creado_por, :origen, NOW(), NOW())",
+             (:sucursal_id, :cliente_id, :cliente_nombre, :cliente_telefono, :servicio, :codigo_promocion, :programa_id, :fecha, :hora_inicio, :hora_fin, :estatus, :creado_por, :origen, NOW(), NOW())",
             [
                 'sucursal_id' => $data['sucursal_id'],
                 'cliente_id' => $data['cliente_id'] ?: null,
@@ -106,6 +109,7 @@ class Cita
                 'cliente_telefono' => $data['cliente_telefono'],
                 'servicio' => $data['servicio'],
                 'codigo_promocion' => $data['codigo_promocion'],
+                'programa_id' => $data['programa_id'] ?: null,
                 'fecha' => $data['fecha'],
                 'hora_inicio' => $data['hora_inicio'],
                 'hora_fin' => $data['hora_fin'],
@@ -134,6 +138,7 @@ class Cita
                  cliente_telefono = :cliente_telefono,
                  servicio = :servicio,
                  codigo_promocion = :codigo_promocion,
+                 programa_id = :programa_id,
                  fecha = :fecha,
                  hora_inicio = :hora_inicio,
                  hora_fin = :hora_fin,
@@ -149,6 +154,7 @@ class Cita
                 'cliente_telefono' => $data['cliente_telefono'],
                 'servicio' => $data['servicio'],
                 'codigo_promocion' => $data['codigo_promocion'],
+                'programa_id' => $data['programa_id'] ?: null,
                 'fecha' => $data['fecha'],
                 'hora_inicio' => $data['hora_inicio'],
                 'hora_fin' => $data['hora_fin'],
@@ -274,6 +280,18 @@ class Cita
         );
     }
 
+
+    private static function rangesOverlap(string $startA, string $endA, string $startB, string $endB): bool
+    {
+        $aStart = strtotime('2000-01-01 ' . substr($startA, 0, 5));
+        $aEnd = strtotime('2000-01-01 ' . substr($endA, 0, 5));
+        $bStart = strtotime('2000-01-01 ' . substr($startB, 0, 5));
+        $bEnd = strtotime('2000-01-01 ' . substr($endB, 0, 5));
+
+        // Intervalos semiabiertos [inicio, fin): si una cita termina justo cuando otra inicia, no empalman.
+        return $aStart < $bEnd && $aEnd > $bStart;
+    }
+
     public static function availableSlots(int $sucursalId, string $fecha, string $start = '08:00', string $end = '20:00', int $interval = 30): array
     {
         $events = Database::select(
@@ -297,7 +315,7 @@ class Cita
             $slotEnd = date('H:i', strtotime("+{$interval} minutes", $current));
             $ocupadas = 0;
             foreach ($events as $event) {
-                if ($slotStart < substr($event['hora_fin'], 0, 5) && $slotEnd > substr($event['hora_inicio'], 0, 5)) {
+                if (self::rangesOverlap($slotStart, $slotEnd, (string)$event['hora_inicio'], (string)$event['hora_fin'])) {
                     $ocupadas++;
                 }
             }
