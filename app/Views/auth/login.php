@@ -19,11 +19,5 @@
             <button class="btn btn-primary" type="submit">Entrar</button>
         </form>
 
-        <div class="login-help">
-            <strong>Usuarios demo tras instalar:</strong><br>
-            Admin: admin.demo@citas.local / Admin123!<br>
-            Call center: callcenter.demo@citas.local / Call123!<br>
-            Sucursal: sucursal.demo@citas.local / Sucursal123!
-        </div>
     </div>
 </section>
