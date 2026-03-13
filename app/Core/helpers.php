@@ -47,7 +47,16 @@ function url(string $path = ''): string
 
 function asset(string $path): string
 {
-    return url('public/assets/' . ltrim($path, '/'));
+    $normalizedPath = ltrim($path, '/');
+    $assetUrl = url('public/assets/' . $normalizedPath);
+    $absolutePath = base_path('public/assets/' . $normalizedPath);
+
+    if (is_file($absolutePath)) {
+        $version = (string) filemtime($absolutePath);
+        return $assetUrl . '?v=' . rawurlencode($version);
+    }
+
+    return $assetUrl;
 }
 
 function current_path(): string
