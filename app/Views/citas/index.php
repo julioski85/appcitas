@@ -66,6 +66,40 @@
     ></div>
 </section>
 
+
+<?php if (!empty($citasVencidasPendientes)): ?>
+<section class="card">
+    <h3>⚠️ Citas vencidas pendientes de cierre</h3>
+    <p>Estas citas ya pasaron y deben marcarse como <strong>Asistió</strong> o <strong>No asistió</strong>.</p>
+    <div class="table-wrap">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Fecha</th>
+                    <th>Horario</th>
+                    <th>Cliente</th>
+                    <th>Sucursal</th>
+                    <th>Estatus</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php foreach ($citasVencidasPendientes as $cita): ?>
+                <tr>
+                    <td><?= e(format_date($cita['fecha'])) ?></td>
+                    <td><?= e(format_time($cita['hora_inicio'])) ?> - <?= e(format_time($cita['hora_fin'])) ?></td>
+                    <td><?= e($cita['cliente_nombre']) ?></td>
+                    <td><?= e($cita['sucursal_nombre']) ?></td>
+                    <td><span class="badge badge-<?= e($cita['estatus']) ?>"><?= e($cita['estatus']) ?></span></td>
+                    <td><a class="btn btn-outline btn-sm" href="<?= e(url('/citas/edit/' . $cita['id'])) ?>">Cerrar cita</a></td>
+                </tr>
+                <?php endforeach; ?>
+            </tbody>
+        </table>
+    </div>
+</section>
+<?php endif; ?>
+
 <section class="card">
     <h3>Últimas 20 citas</h3>
     <div class="table-wrap">

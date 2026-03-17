@@ -29,6 +29,10 @@
             <input type="number" min="1" step="1" name="capacidad_simultanea" value="<?= e(old('capacidad_simultanea', (string)($sucursal['capacidad_simultanea'] ?? '1'))) ?>" required>
         </div>
         <div class="form-group">
+            <label>Buffer entre citas (minutos)</label>
+            <input type="number" min="0" step="1" name="buffer_minutos" value="<?= e(old('buffer_minutos', (string)($sucursal['buffer_minutos'] ?? '5'))) ?>" required>
+        </div>
+        <div class="form-group">
             <label>Hora de apertura</label>
             <input type="time" name="hora_apertura" value="<?= e(substr(old('hora_apertura', $sucursal['hora_apertura'] ?? '08:00'), 0, 5)) ?>" required>
         </div>

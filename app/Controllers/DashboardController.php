@@ -23,6 +23,16 @@ class DashboardController extends Controller
     {
         $user = $this->requireAuth();
 
+        $dashboardFilters = [
+            'sucursal_id' => $_GET['sucursal_id'] ?? '',
+            'start' => $_GET['start'] ?? date('Y-m-01'),
+            'end' => $_GET['end'] ?? date('Y-m-t'),
+        ];
+
+        if ($user['rol'] === 'sucursal') {
+            $dashboardFilters['sucursal_id'] = (string)$user['sucursal_id'];
+        }
+
         if ($user['rol'] === 'sucursal') {
             $branchId = (int)$user['sucursal_id'];
 
@@ -102,6 +112,9 @@ class DashboardController extends Controller
             static fn(array $item): bool => (int)($item['total'] ?? 0) > 0
         ));
 
-        $this->view('dashboard/index', compact('stats', 'user'));
+        $stats['citasVencidas'] = Cita::overduePendingCounts($user, $dashboardFilters);
+        $sucursales = Sucursal::all();
+
+        $this->view('dashboard/index', compact('stats', 'user', 'dashboardFilters', 'sucursales'));
     }
 }

@@ -35,10 +35,18 @@ class SucursalController extends Controller
             'capacidad_simultanea' => 'required',
             'hora_apertura' => 'required|time',
             'hora_cierre' => 'required|time',
+            'buffer_minutos' => 'required',
         ], $_POST);
 
         if (strtotime('2000-01-01 ' . $data['hora_cierre']) <= strtotime('2000-01-01 ' . $data['hora_apertura'])) {
             set_flash('error', 'La hora de cierre debe ser mayor a la hora de apertura.');
+            set_old($_POST);
+            back();
+        }
+
+
+        if ((int)$data['buffer_minutos'] < 0) {
+            set_flash('error', 'El buffer entre citas no puede ser negativo.');
             set_old($_POST);
             back();
         }
@@ -72,10 +80,18 @@ class SucursalController extends Controller
             'capacidad_simultanea' => 'required',
             'hora_apertura' => 'required|time',
             'hora_cierre' => 'required|time',
+            'buffer_minutos' => 'required',
         ], $_POST);
 
         if (strtotime('2000-01-01 ' . $data['hora_cierre']) <= strtotime('2000-01-01 ' . $data['hora_apertura'])) {
             set_flash('error', 'La hora de cierre debe ser mayor a la hora de apertura.');
+            set_old($_POST);
+            back();
+        }
+
+
+        if ((int)$data['buffer_minutos'] < 0) {
+            set_flash('error', 'El buffer entre citas no puede ser negativo.');
             set_old($_POST);
             back();
         }
