@@ -79,13 +79,15 @@ class ApiController extends Controller
             ];
         }, $events);
 
-        $bloqueos = BloqueoHorario::allActiveForCalendar($user, [
-            'start' => $start,
-            'end' => $end,
-            'sucursal_id' => $sucursalId,
-        ]);
+        $showBlocks = ($_GET['show_blocks'] ?? '1') !== '0';
+        if ($showBlocks) {
+            $bloqueos = BloqueoHorario::allActiveForCalendar($user, [
+                'start' => $start,
+                'end' => $end,
+                'sucursal_id' => $sucursalId,
+            ]);
 
-        foreach ($bloqueos as $bloqueo) {
+            foreach ($bloqueos as $bloqueo) {
             $fechas = [];
             if ($bloqueo['tipo_bloqueo'] === 'fecha_especifica' && !empty($bloqueo['fecha'])) {
                 $fechas[] = $bloqueo['fecha'];
@@ -126,20 +128,24 @@ class ApiController extends Controller
                     'is_block' => true,
                 ];
             }
+            }
         }
 
         $this->json(['ok' => true, 'data' => $payload]);
     }
 
-    public function storeCita(): void
-    {
-        $user = $this->requireApiOrSession();
 
+    private function parseCitaPayload(): array
+    {
         $payload = json_decode(file_get_contents('php://input'), true);
         if (!is_array($payload)) {
             $payload = $_POST;
         }
+        return $payload;
+    }
 
+    private function normalizeAndValidateApiCita(array $payload, array $user, string $mode = 'create', ?array $existing = null, ?int $ignoreId = null): array
+    {
         $required = ['sucursal_id', 'servicio', 'fecha', 'hora_inicio', 'hora_fin'];
         foreach ($required as $field) {
             if (empty($payload[$field])) {
@@ -191,14 +197,30 @@ class ApiController extends Controller
         }
 
         $today = date('Y-m-d');
-        if ($data['fecha'] < $today) {
+        if ($mode === 'create' && $data['fecha'] < $today) {
             $this->json(['ok' => false, 'message' => 'No se pueden agendar citas en fechas anteriores al día actual.'], 422);
+        }
+
+        if ($mode === 'update') {
+            if (!$existing) {
+                $this->json(['ok' => false, 'message' => 'Cita no encontrada.'], 404);
+            }
+            $existingEndTs = strtotime($existing['fecha'] . ' ' . $existing['hora_fin']);
+            $isExpired = $existingEndTs !== false && $existingEndTs < time();
+            if ($isExpired) {
+                foreach (['fecha', 'hora_inicio', 'hora_fin', 'sucursal_id'] as $field) {
+                    if ((string)$data[$field] !== (string)$existing[$field]) {
+                        $this->json(['ok' => false, 'message' => 'Las citas vencidas solo permiten cierre operativo y ajustes administrativos sin cambiar sucursal ni horario.'], 422);
+                    }
+                }
+            } elseif ($data['fecha'] < $today) {
+                $this->json(['ok' => false, 'message' => 'No se pueden reprogramar citas hacia fechas anteriores al día actual.'], 422);
+            }
         }
 
         if (!in_array($data['servicio'], Cita::SERVICIOS, true)) {
             $this->json(['ok' => false, 'message' => 'Servicio inválido.'], 422);
         }
-
 
         if ($data['programa_id'] !== '') {
             $programa = Programa::find((int)$data['programa_id']);
@@ -224,7 +246,7 @@ class ApiController extends Controller
 
         $capacidad = max(1, (int)($sucursal['capacidad_simultanea'] ?? 1));
 
-        if (Cita::hasCapacityConflict($data, $capacidad)) {
+        if (Cita::hasCapacityConflict($data, $capacidad, $ignoreId)) {
             $this->json(['ok' => false, 'message' => 'Horario sin cupo en esa sucursal.'], 409);
         }
 
@@ -232,8 +254,35 @@ class ApiController extends Controller
             $this->json(['ok' => false, 'message' => 'Ese horario no está disponible en la sucursal seleccionada.'], 409);
         }
 
+        return $data;
+    }
+
+    public function storeCita(): void
+    {
+        $user = $this->requireApiOrSession();
+        $payload = $this->parseCitaPayload();
+
+        $data = $this->normalizeAndValidateApiCita($payload, $user, 'create');
         Cita::create($data, (int)$user['id']);
         $this->json(['ok' => true, 'message' => 'Cita creada correctamente.']);
+    }
+
+    public function updateCita(string $id): void
+    {
+        $user = $this->requireApiOrSession();
+        $existing = Cita::find((int)$id);
+        if (!$existing) {
+            $this->json(['ok' => false, 'message' => 'Cita no encontrada.'], 404);
+        }
+        if ($user['rol'] === 'sucursal' && (int)$existing['sucursal_id'] !== (int)$user['sucursal_id']) {
+            $this->json(['ok' => false, 'message' => 'No autorizado.'], 403);
+        }
+
+        $payload = $this->parseCitaPayload();
+        $data = $this->normalizeAndValidateApiCita($payload, $user, 'update', $existing, (int)$id);
+        Cita::update((int)$id, $data);
+
+        $this->json(['ok' => true, 'message' => 'Cita actualizada correctamente.']);
     }
 
     public function bloqueos(): void

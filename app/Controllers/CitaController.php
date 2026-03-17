@@ -12,7 +12,7 @@ use App\Models\Programa;
 
 class CitaController extends Controller
 {
-    private function normalizeAndValidateCita(array $input, array $user, ?int $ignoreId = null): array
+    private function normalizeAndValidateCita(array $input, array $user, string $mode = 'create', ?array $existing = null, ?int $ignoreId = null): array
     {
         $data = $this->validate([
             'sucursal_id' => 'required',
@@ -73,10 +73,36 @@ class CitaController extends Controller
         }
 
         $today = date('Y-m-d');
-        if ($data['fecha'] < $today) {
+        if ($mode === 'create' && $data['fecha'] < $today) {
             set_flash('error', 'No se pueden agendar citas en fechas anteriores al día actual.');
             set_old($input);
             back();
+        }
+
+        if ($mode === 'update') {
+            if (!$existing) {
+                set_flash('error', 'No se pudo validar la cita existente.');
+                set_old($input);
+                back();
+            }
+
+            $existingEndTs = strtotime($existing['fecha'] . ' ' . $existing['hora_fin']);
+            $isExpired = $existingEndTs !== false && $existingEndTs < time();
+
+            if ($isExpired) {
+                $immutablePastFields = ['fecha', 'hora_inicio', 'hora_fin', 'sucursal_id'];
+                foreach ($immutablePastFields as $field) {
+                    if ((string)$data[$field] !== (string)$existing[$field]) {
+                        set_flash('error', 'Las citas históricas solo permiten cierre operativo y ajustes administrativos sin cambiar sucursal ni horario.');
+                        set_old($input);
+                        back();
+                    }
+                }
+            } elseif ($data['fecha'] < $today) {
+                set_flash('error', 'No se pueden reprogramar citas hacia fechas anteriores al día actual.');
+                set_old($input);
+                back();
+            }
         }
 
 
@@ -193,7 +219,7 @@ class CitaController extends Controller
         $user = $this->requireAuth();
         verify_csrf();
 
-        $data = $this->normalizeAndValidateCita($_POST, $user);
+        $data = $this->normalizeAndValidateCita($_POST, $user, 'create');
         Cita::create($data, (int)$user['id']);
 
         set_flash('success', 'Cita creada correctamente.');
@@ -217,8 +243,9 @@ class CitaController extends Controller
         }
 
         $programas = Programa::optionsForSucursal((int)$cita['sucursal_id'], !empty($cita['programa_id']) ? (int)$cita['programa_id'] : null);
+        $isExpired = strtotime($cita['fecha'] . ' ' . $cita['hora_fin']) < time();
         $isEdit = true;
-        $this->view('citas/form', compact('user', 'sucursales', 'cita', 'isEdit', 'programas'));
+        $this->view('citas/form', compact('user', 'sucursales', 'cita', 'isEdit', 'isExpired', 'programas'));
     }
 
     public function update(string $id): void
@@ -237,7 +264,7 @@ class CitaController extends Controller
             exit('No autorizado.');
         }
 
-        $data = $this->normalizeAndValidateCita($_POST, $user, (int)$id);
+        $data = $this->normalizeAndValidateCita($_POST, $user, 'update', $existing, (int)$id);
         Cita::update((int)$id, $data);
 
         set_flash('success', 'Cita actualizada correctamente.');
