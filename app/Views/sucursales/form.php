@@ -30,7 +30,7 @@
         </div>
         <div class="form-group">
             <label>Buffer entre citas (minutos)</label>
-            <input type="number" min="0" step="1" name="buffer_minutos" value="<?= e(old('buffer_minutos', (string)($sucursal['buffer_minutos'] ?? '0'))) ?>" required>
+            <input type="number" min="0" step="1" name="buffer_minutos" value="<?= e(old('buffer_minutos', (string)($sucursal['buffer_minutos'] ?? '5'))) ?>" required>
         </div>
         <div class="form-group">
             <label>Hora de apertura</label>

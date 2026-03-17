@@ -9,7 +9,7 @@ CREATE TABLE IF NOT EXISTS sucursales (
     capacidad_simultanea INT NOT NULL DEFAULT 1,
     hora_apertura TIME NOT NULL DEFAULT '08:00:00',
     hora_cierre TIME NOT NULL DEFAULT '20:00:00',
-    buffer_minutos INT NOT NULL DEFAULT 0,
+    buffer_minutos INT NOT NULL DEFAULT 5,
     created_at DATETIME NULL,
     updated_at DATETIME NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

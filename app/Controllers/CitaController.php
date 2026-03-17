@@ -136,6 +136,13 @@ class CitaController extends Controller
             back();
         }
 
+        $bufferMinutos = Sucursal::normalizeBufferMinutes($sucursal['buffer_minutos'] ?? null);
+        if (Cita::hasBufferConflict($data, $bufferMinutos, $ignoreId)) {
+            set_flash('error', 'Este horario no respeta el margen operativo de ' . $bufferMinutos . ' minutos entre citas para la sucursal.');
+            set_old($input);
+            back();
+        }
+
         if (BloqueoHorario::hasBlockingForRange((int)$data['sucursal_id'], $data['fecha'], $data['hora_inicio'], $data['hora_fin'])) {
             set_flash('error', 'Ese horario no está disponible en la sucursal seleccionada.');
             set_old($input);
