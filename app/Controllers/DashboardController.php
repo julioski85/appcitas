@@ -102,6 +102,19 @@ class DashboardController extends Controller
             static fn(array $item): bool => (int)($item['total'] ?? 0) > 0
         ));
 
-        $this->view('dashboard/index', compact('stats', 'user'));
+        $overdueFilters = [
+            'sucursal_id' => $_GET['overdue_sucursal_id'] ?? '',
+            'start' => $_GET['overdue_start'] ?? '',
+            'end' => $_GET['overdue_end'] ?? '',
+        ];
+        if ($user['rol'] === 'sucursal') {
+            $overdueFilters['sucursal_id'] = (string)$user['sucursal_id'];
+        }
+
+        $stats['cierre_operativo'] = Cita::overdueOperationalSummary($overdueFilters);
+        $pendingOverdue = Cita::overduePendingOperationalList($user, $overdueFilters);
+        $sucursales = Sucursal::all();
+
+        $this->view('dashboard/index', compact('stats', 'user', 'overdueFilters', 'pendingOverdue', 'sucursales'));
     }
 }

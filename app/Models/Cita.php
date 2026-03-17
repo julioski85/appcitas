@@ -203,8 +203,7 @@ class Cita
                 WHERE sucursal_id = :sucursal_id
                   AND fecha = :fecha
                   AND estatus <> 'cancelada'
-                  AND hora_inicio < :hora_fin
-                  AND hora_fin > :hora_inicio";
+                  AND NOT (hora_fin <= :hora_inicio OR hora_inicio >= :hora_fin)";
         $params = [
             'sucursal_id' => $data['sucursal_id'],
             'fecha' => $data['fecha'],
@@ -277,6 +276,84 @@ class Cita
              GROUP BY hora_inicio
              ORDER BY total DESC, hora_inicio ASC
              LIMIT 8"
+        );
+    }
+
+
+    public static function overdueOperationalSummary(array $filters = []): array
+    {
+        $where = ["TIMESTAMP(c.fecha, c.hora_fin) < NOW()"];
+        $params = [];
+
+        if (!empty($filters['sucursal_id'])) {
+            $where[] = 'c.sucursal_id = :sucursal_id';
+            $params['sucursal_id'] = (int)$filters['sucursal_id'];
+        }
+
+        if (!empty($filters['start'])) {
+            $where[] = 'c.fecha >= :start';
+            $params['start'] = $filters['start'];
+        }
+
+        if (!empty($filters['end'])) {
+            $where[] = 'c.fecha <= :end';
+            $params['end'] = $filters['end'];
+        }
+
+        $row = Database::first(
+            "SELECT
+                SUM(c.estatus = 'agendada') AS vencidas_agendada,
+                SUM(c.estatus = 'confirmada') AS vencidas_confirmada,
+                SUM(c.estatus = 'asistio') AS cerradas_asistio,
+                SUM(c.estatus = 'no_asistio') AS cerradas_no_asistio
+             FROM citas c
+             WHERE " . implode(' AND ', $where),
+            $params
+        ) ?: [];
+
+        return [
+            'vencidas_agendada' => (int)($row['vencidas_agendada'] ?? 0),
+            'vencidas_confirmada' => (int)($row['vencidas_confirmada'] ?? 0),
+            'cerradas_asistio' => (int)($row['cerradas_asistio'] ?? 0),
+            'cerradas_no_asistio' => (int)($row['cerradas_no_asistio'] ?? 0),
+        ];
+    }
+
+    public static function overduePendingOperationalList(array $user, array $filters = []): array
+    {
+        $where = [
+            "c.estatus IN ('agendada','confirmada')",
+            "TIMESTAMP(c.fecha, c.hora_fin) < NOW()",
+        ];
+        $params = [];
+
+        if ($user['rol'] === 'sucursal') {
+            $where[] = 'c.sucursal_id = :user_sucursal_id';
+            $params['user_sucursal_id'] = (int)$user['sucursal_id'];
+        } elseif (!empty($filters['sucursal_id'])) {
+            $where[] = 'c.sucursal_id = :sucursal_id';
+            $params['sucursal_id'] = (int)$filters['sucursal_id'];
+        }
+
+        if (!empty($filters['start'])) {
+            $where[] = 'c.fecha >= :start';
+            $params['start'] = $filters['start'];
+        }
+
+        if (!empty($filters['end'])) {
+            $where[] = 'c.fecha <= :end';
+            $params['end'] = $filters['end'];
+        }
+
+        return Database::select(
+            "SELECT c.*, s.nombre AS sucursal_nombre,
+                    TIMESTAMPDIFF(MINUTE, TIMESTAMP(c.fecha, c.hora_fin), NOW()) AS minutos_desde_vencimiento
+             FROM citas c
+             INNER JOIN sucursales s ON s.id = c.sucursal_id
+             WHERE " . implode(' AND ', $where) . "
+             ORDER BY c.fecha DESC, c.hora_fin DESC
+             LIMIT 100",
+            $params
         );
     }
 

@@ -18,12 +18,20 @@ foreach ($sucursales as $itemSucursal) {
 }
 ?>
 
+<?php $isExpired = (bool)($isExpired ?? false); $disableScheduleFields = $isEdit && $isExpired; ?>
+
 <section class="card form-card">
     <form method="POST" action="<?= e($isEdit ? url('/citas/update/' . $cita['id']) : url('/citas/store')) ?>" class="form-grid two" data-cita-form data-client-search-url="<?= e(url('/citas/clientes/search')) ?>" data-prospect-url="<?= e(url('/citas/prospectos/quick-store')) ?>" data-programas-url="<?= e(url('/citas/programas')) ?>">
         <?= csrf_field() ?>
 
+        <?php if ($disableScheduleFields): ?>
+            <div class="span-2"><small>Esta cita ya venció. Solo puedes cerrar estatus y hacer ajustes administrativos sin cambiar sucursal ni horario.</small></div>
+        <?php endif; ?>
+
         <?php if ($user['rol'] !== 'sucursal'): ?>
-        <div class="form-group"><label>Sucursal</label><select name="sucursal_id" required><?php foreach ($sucursales as $sucursal): ?><option value="<?= e($sucursal['id']) ?>" data-open-hour="<?= e(substr((string)($sucursal['hora_apertura'] ?? '08:00'), 0, 5)) ?>" data-close-hour="<?= e(substr((string)($sucursal['hora_cierre'] ?? '20:00'), 0, 5)) ?>" <?= selected(old('sucursal_id', $cita['sucursal_id'] ?? ''), $sucursal['id']) ?>><?= e($sucursal['nombre']) ?></option><?php endforeach; ?></select></div>
+        <div class="form-group"><label>Sucursal</label><select name="sucursal_id" required <?= $disableScheduleFields ? "disabled" : "" ?>><?php foreach ($sucursales as $sucursal): ?><option value="<?= e($sucursal['id']) ?>" data-open-hour="<?= e(substr((string)($sucursal['hora_apertura'] ?? '08:00'), 0, 5)) ?>" data-close-hour="<?= e(substr((string)($sucursal['hora_cierre'] ?? '20:00'), 0, 5)) ?>" <?= selected(old('sucursal_id', $cita['sucursal_id'] ?? ''), $sucursal['id']) ?>><?= e($sucursal['nombre']) ?></option><?php endforeach; ?></select></div>
+        <?php if ($disableScheduleFields && $user['rol'] !== 'sucursal'): ?><input type="hidden" name="sucursal_id" value="<?= e((string)old('sucursal_id', $cita['sucursal_id'] ?? '')) ?>"><?php endif; ?>
+
         <?php else: ?>
             <input type="hidden" name="sucursal_id" value="<?= e((string)$user['sucursal_id']) ?>">
             <div class="form-group"><label>Sucursal</label><input type="text" value="<?= e($user['sucursal_nombre'] ?? 'Sucursal') ?>" disabled></div>
@@ -54,9 +62,9 @@ foreach ($sucursales as $itemSucursal) {
         <div class="form-group"><label>Servicio</label><?php $servicio = old('servicio', $cita['servicio'] ?? 'Consulta general'); ?><select name="servicio" required><?php foreach (\App\Models\Cita::SERVICIOS as $itemServicio): ?><option value="<?= e($itemServicio) ?>" <?= selected($servicio, $itemServicio) ?>><?= e($itemServicio) ?></option><?php endforeach; ?></select></div>
         <div class="form-group"><label>Código de promoción</label><input type="text" name="codigo_promocion" value="<?= e(old('codigo_promocion', $cita['codigo_promocion'] ?? '')) ?>"></div>
         <div class="form-group"><label>Programa (opcional)</label><?php $programaId = old('programa_id', (string)($cita['programa_id'] ?? '')); ?><select name="programa_id" data-programa-select><option value="">Sin programa</option><?php foreach (($programas ?? []) as $programa): ?><option value="<?= e($programa['id']) ?>" <?= selected($programaId, (string)$programa['id']) ?>><?= e($programa['nombre']) ?></option><?php endforeach; ?></select></div>
-        <div class="form-group"><label>Fecha</label><input type="date" name="fecha" min="<?= e(date('Y-m-d')) ?>" value="<?= e(old('fecha', $cita['fecha'] ?? date('Y-m-d'))) ?>" required></div>
-        <div class="form-group"><label>Hora inicio</label><input type="time" name="hora_inicio" min="<?= e($selectedOpenHour) ?>" max="<?= e($selectedCloseHour) ?>" value="<?= e(substr(old('hora_inicio', $cita['hora_inicio'] ?? '10:00'), 0, 5)) ?>" required data-hora-inicio></div>
-        <div class="form-group"><label>Hora fin</label><input type="time" name="hora_fin" min="<?= e($selectedOpenHour) ?>" max="<?= e($selectedCloseHour) ?>" value="<?= e(substr(old('hora_fin', $cita['hora_fin'] ?? '10:30'), 0, 5)) ?>" required data-hora-fin></div>
+        <div class="form-group"><label>Fecha</label><input type="date" name="fecha" min="<?= e($isEdit ? "" : date('Y-m-d')) ?>" value="<?= e(old('fecha', $cita['fecha'] ?? date('Y-m-d'))) ?>" required <?= $disableScheduleFields ? "readonly" : "" ?>></div>
+        <div class="form-group"><label>Hora inicio</label><input type="time" name="hora_inicio" min="<?= e($selectedOpenHour) ?>" max="<?= e($selectedCloseHour) ?>" value="<?= e(substr(old('hora_inicio', $cita['hora_inicio'] ?? '10:00'), 0, 5)) ?>" required data-hora-inicio <?= $disableScheduleFields ? "readonly" : "" ?>></div>
+        <div class="form-group"><label>Hora fin</label><input type="time" name="hora_fin" min="<?= e($selectedOpenHour) ?>" max="<?= e($selectedCloseHour) ?>" value="<?= e(substr(old('hora_fin', $cita['hora_fin'] ?? '10:30'), 0, 5)) ?>" required data-hora-fin <?= $disableScheduleFields ? "readonly" : "" ?>></div>
 
         <div class="form-group"><label>Estatus</label><select name="estatus" required><?php $estatus = old('estatus', $cita['estatus'] ?? 'agendada'); foreach(['agendada','confirmada','asistio','no_asistio','cancelada','reprogramada'] as $eStatus): ?><option value="<?= e($eStatus) ?>" <?= selected($estatus,$eStatus) ?>><?= e($eStatus) ?></option><?php endforeach; ?></select></div>
 
