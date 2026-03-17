@@ -41,6 +41,36 @@
     </div>
 </section>
 
+
+<section class="card">
+    <form method="GET" action="<?= e(url('/dashboard')) ?>" class="filters">
+        <?php if ($user['rol'] !== 'sucursal'): ?>
+        <div class="form-group">
+            <label>Sucursal</label>
+            <select name="sucursal_id">
+                <option value="">Todas</option>
+                <?php foreach ($sucursales as $sucursal): ?>
+                    <option value="<?= e($sucursal['id']) ?>" <?= selected((string)($dashboardFilters['sucursal_id'] ?? ''), (string)$sucursal['id']) ?>><?= e($sucursal['nombre']) ?></option>
+                <?php endforeach; ?>
+            </select>
+        </div>
+        <?php else: ?>
+            <input type="hidden" name="sucursal_id" value="<?= e((string)$user['sucursal_id']) ?>">
+        <?php endif; ?>
+        <div class="form-group">
+            <label>Desde</label>
+            <input type="date" name="start" value="<?= e((string)($dashboardFilters['start'] ?? '')) ?>">
+        </div>
+        <div class="form-group">
+            <label>Hasta</label>
+            <input type="date" name="end" value="<?= e((string)($dashboardFilters['end'] ?? '')) ?>">
+        </div>
+        <div class="form-actions compact">
+            <button class="btn btn-outline" type="submit">Aplicar</button>
+        </div>
+    </form>
+</section>
+
 <section class="two-col">
     <div class="card">
         <h3>Citas por sucursal (mes actual)</h3>
@@ -154,6 +184,35 @@
                     <td><?= e($cita['servicio']) ?></td>
                     <td><span class="badge badge-<?= e($cita['estatus']) ?>"><?= e($cita['estatus']) ?></span></td>
                     <td><?= e($cita['origen']) ?></td>
+                </tr>
+                <?php endforeach; ?>
+            </tbody>
+        </table>
+    </div>
+</section>
+
+
+<section class="card">
+    <h3>Control de citas vencidas y cierre operativo</h3>
+    <div class="table-wrap">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Sucursal</th>
+                    <th>Vencidas en Agendada</th>
+                    <th>Vencidas en Confirmada</th>
+                    <th>Asistió</th>
+                    <th>No asistió</th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php foreach (($stats['citasVencidas'] ?? []) as $item): ?>
+                <tr>
+                    <td><?= e($item['sucursal_nombre']) ?></td>
+                    <td><strong><?= (int)($item['vencidas_agendada'] ?? 0) ?></strong></td>
+                    <td><strong><?= (int)($item['vencidas_confirmada'] ?? 0) ?></strong></td>
+                    <td><?= (int)($item['asistio'] ?? 0) ?></td>
+                    <td><?= (int)($item['no_asistio'] ?? 0) ?></td>
                 </tr>
                 <?php endforeach; ?>
             </tbody>

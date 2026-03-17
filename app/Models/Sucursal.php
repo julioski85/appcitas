@@ -7,6 +7,15 @@ use App\Core\Database;
 
 class Sucursal
 {
+    public static function normalizeBufferMinutes($minutes, int $fallback = 5): int
+    {
+        if ($minutes === null || $minutes === '') {
+            return $fallback;
+        }
+
+        return max(0, (int)$minutes);
+    }
+
     public static function normalizeBusinessHour(?string $time, string $fallback): string
     {
         $value = trim((string)$time);
@@ -62,8 +71,8 @@ class Sucursal
         $horaCierre = self::normalizeBusinessHour($data['hora_cierre'] ?? null, '20:00');
 
         return Database::execute(
-            "INSERT INTO sucursales (nombre, direccion, telefono, color_calendario, capacidad_simultanea, hora_apertura, hora_cierre, created_at, updated_at)
-             VALUES (:nombre, :direccion, :telefono, :color, :capacidad_simultanea, :hora_apertura, :hora_cierre, NOW(), NOW())",
+            "INSERT INTO sucursales (nombre, direccion, telefono, color_calendario, capacidad_simultanea, hora_apertura, hora_cierre, buffer_minutos, created_at, updated_at)
+             VALUES (:nombre, :direccion, :telefono, :color, :capacidad_simultanea, :hora_apertura, :hora_cierre, :buffer_minutos, NOW(), NOW())",
             [
                 'nombre' => $data['nombre'],
                 'direccion' => $data['direccion'],
@@ -72,6 +81,7 @@ class Sucursal
                 'capacidad_simultanea' => max(1, (int)$data['capacidad_simultanea']),
                 'hora_apertura' => $horaApertura,
                 'hora_cierre' => $horaCierre,
+                'buffer_minutos' => self::normalizeBufferMinutes($data['buffer_minutos'] ?? null),
             ]
         );
     }
@@ -83,7 +93,7 @@ class Sucursal
 
         return Database::execute(
             "UPDATE sucursales
-             SET nombre = :nombre, direccion = :direccion, telefono = :telefono, color_calendario = :color, capacidad_simultanea = :capacidad_simultanea, hora_apertura = :hora_apertura, hora_cierre = :hora_cierre, updated_at = NOW()
+             SET nombre = :nombre, direccion = :direccion, telefono = :telefono, color_calendario = :color, capacidad_simultanea = :capacidad_simultanea, hora_apertura = :hora_apertura, hora_cierre = :hora_cierre, buffer_minutos = :buffer_minutos, updated_at = NOW()
              WHERE id = :id",
             [
                 'id' => $id,
@@ -94,6 +104,7 @@ class Sucursal
                 'capacidad_simultanea' => max(1, (int)$data['capacidad_simultanea']),
                 'hora_apertura' => $horaApertura,
                 'hora_cierre' => $horaCierre,
+                'buffer_minutos' => self::normalizeBufferMinutes($data['buffer_minutos'] ?? null),
             ]
         );
     }

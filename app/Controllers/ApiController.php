@@ -195,6 +195,10 @@ class ApiController extends Controller
             $this->json(['ok' => false, 'message' => 'No se pueden agendar citas en fechas anteriores al día actual.'], 422);
         }
 
+        if (Cita::hasElapsed($data['fecha'], $data['hora_fin']) && in_array($data['estatus'], ['agendada', 'confirmada'], true)) {
+            $this->json(['ok' => false, 'message' => 'Una cita pasada no puede quedar en Agendada/Confirmada; marca Asistió o No asistió.'], 422);
+        }
+
         if (!in_array($data['servicio'], Cita::SERVICIOS, true)) {
             $this->json(['ok' => false, 'message' => 'Servicio inválido.'], 422);
         }
@@ -226,6 +230,11 @@ class ApiController extends Controller
 
         if (Cita::hasCapacityConflict($data, $capacidad)) {
             $this->json(['ok' => false, 'message' => 'Horario sin cupo en esa sucursal.'], 409);
+        }
+
+        $bufferMinutos = Sucursal::normalizeBufferMinutes($sucursal['buffer_minutos'] ?? null);
+        if (Cita::hasBufferConflict($data, $bufferMinutos)) {
+            $this->json(['ok' => false, 'message' => 'El horario no respeta el buffer operativo de ' . $bufferMinutos . ' minutos entre citas.'], 409);
         }
 
         if (BloqueoHorario::hasBlockingForRange((int)$data['sucursal_id'], $data['fecha'], $data['hora_inicio'], $data['hora_fin'])) {

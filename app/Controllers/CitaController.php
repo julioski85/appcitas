@@ -12,7 +12,18 @@ use App\Models\Programa;
 
 class CitaController extends Controller
 {
-    private function normalizeAndValidateCita(array $input, array $user, ?int $ignoreId = null): array
+    private function mustClosePastAppointment(array $data): bool
+    {
+        return Cita::hasElapsed($data['fecha'], $data['hora_fin'])
+            && in_array($data['estatus'], ['agendada', 'confirmada'], true);
+    }
+
+    private function buildOverdueMessage(): string
+    {
+        return 'Esta cita ya ocurrió y no puede permanecer en Agendada/Confirmada. Debes marcarla como Asistió o No asistió.';
+    }
+
+    private function normalizeAndValidateCita(array $input, array $user, ?int $ignoreId = null, bool $isUpdate = false): array
     {
         $data = $this->validate([
             'sucursal_id' => 'required',
@@ -73,12 +84,17 @@ class CitaController extends Controller
         }
 
         $today = date('Y-m-d');
-        if ($data['fecha'] < $today) {
+        if (!$isUpdate && $data['fecha'] < $today) {
             set_flash('error', 'No se pueden agendar citas en fechas anteriores al día actual.');
             set_old($input);
             back();
         }
 
+        if ($this->mustClosePastAppointment($data)) {
+            set_flash('error', $this->buildOverdueMessage());
+            set_old($input);
+            back();
+        }
 
         if ($data['programa_id'] !== '') {
             $programa = Programa::find((int)$data['programa_id']);
@@ -120,6 +136,13 @@ class CitaController extends Controller
             back();
         }
 
+        $bufferMinutos = Sucursal::normalizeBufferMinutes($sucursal['buffer_minutos'] ?? null);
+        if (Cita::hasBufferConflict($data, $bufferMinutos, $ignoreId)) {
+            set_flash('error', 'Este horario no respeta el margen operativo de ' . $bufferMinutos . ' minutos entre citas para la sucursal.');
+            set_old($input);
+            back();
+        }
+
         if (BloqueoHorario::hasBlockingForRange((int)$data['sucursal_id'], $data['fecha'], $data['hora_inicio'], $data['hora_fin'])) {
             set_flash('error', 'Ese horario no está disponible en la sucursal seleccionada.');
             set_old($input);
@@ -155,8 +178,9 @@ class CitaController extends Controller
         $calendarCloseHour = $selectedSucursal ? Sucursal::closingHour($selectedSucursal) : '20:00';
 
         $ultimasCitas = Cita::latest($user, $filters);
+        $citasVencidasPendientes = Cita::overduePendingList($user, 12);
 
-        $this->view('citas/index', compact('user', 'filters', 'sucursales', 'ultimasCitas', 'calendarOpenHour', 'calendarCloseHour'));
+        $this->view('citas/index', compact('user', 'filters', 'sucursales', 'ultimasCitas', 'calendarOpenHour', 'calendarCloseHour', 'citasVencidasPendientes'));
     }
 
     public function create(): void
@@ -237,7 +261,7 @@ class CitaController extends Controller
             exit('No autorizado.');
         }
 
-        $data = $this->normalizeAndValidateCita($_POST, $user, (int)$id);
+        $data = $this->normalizeAndValidateCita($_POST, $user, (int)$id, true);
         Cita::update((int)$id, $data);
 
         set_flash('success', 'Cita actualizada correctamente.');

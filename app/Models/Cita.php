@@ -196,6 +196,104 @@ class Cita
         return $ok;
     }
 
+    public static function hasElapsed(string $fecha, string $horaFin): bool
+    {
+        return strtotime($fecha . ' ' . substr($horaFin, 0, 5)) < time();
+    }
+
+    public static function overduePendingCounts(array $user, array $filters = []): array
+    {
+        $where = [];
+        $params = [];
+
+        if ($user['rol'] === 'sucursal') {
+            $where[] = 'c.sucursal_id = :user_sucursal_id';
+            $params['user_sucursal_id'] = $user['sucursal_id'];
+        } elseif (!empty($filters['sucursal_id'])) {
+            $where[] = 'c.sucursal_id = :sucursal_id';
+            $params['sucursal_id'] = (int)$filters['sucursal_id'];
+        }
+
+        if (!empty($filters['start'])) {
+            $where[] = 'c.fecha >= :start';
+            $params['start'] = $filters['start'];
+        }
+
+        if (!empty($filters['end'])) {
+            $where[] = 'c.fecha <= :end';
+            $params['end'] = $filters['end'];
+        }
+
+        $where[] = "TIMESTAMP(c.fecha, c.hora_fin) < NOW()";
+
+        $sqlWhere = $where ? 'WHERE ' . implode(' AND ', $where) : '';
+
+        return Database::select(
+            "SELECT c.sucursal_id,
+                    s.nombre AS sucursal_nombre,
+                    SUM(c.estatus = 'agendada') AS vencidas_agendada,
+                    SUM(c.estatus = 'confirmada') AS vencidas_confirmada,
+                    SUM(c.estatus = 'asistio') AS asistio,
+                    SUM(c.estatus = 'no_asistio') AS no_asistio
+             FROM citas c
+             INNER JOIN sucursales s ON s.id = c.sucursal_id
+             $sqlWhere
+             GROUP BY c.sucursal_id, s.nombre
+             ORDER BY s.nombre ASC",
+            $params
+        );
+    }
+
+    public static function overduePendingList(array $user, int $limit = 10): array
+    {
+        $params = ['limit' => $limit];
+        $sql = "SELECT c.*, s.nombre AS sucursal_nombre
+                FROM citas c
+                INNER JOIN sucursales s ON s.id = c.sucursal_id
+                WHERE c.estatus IN ('agendada', 'confirmada')
+                  AND TIMESTAMP(c.fecha, c.hora_fin) < NOW()";
+
+        if ($user['rol'] === 'sucursal') {
+            $sql .= " AND c.sucursal_id = :sucursal_id";
+            $params['sucursal_id'] = (int)$user['sucursal_id'];
+        }
+
+        $sql .= " ORDER BY c.fecha DESC, c.hora_fin DESC LIMIT :limit";
+
+        return Database::select($sql, $params);
+    }
+
+    public static function hasBufferConflict(array $data, int $bufferMinutos, ?int $ignoreId = null): bool
+    {
+        if ($bufferMinutos <= 0) {
+            return false;
+        }
+
+        $sql = "SELECT COUNT(*) AS total
+                FROM citas
+                WHERE sucursal_id = :sucursal_id
+                  AND fecha = :fecha
+                  AND estatus <> 'cancelada'
+                  AND DATE_SUB(hora_inicio, INTERVAL :buffer MINUTE) < :hora_fin
+                  AND DATE_ADD(hora_fin, INTERVAL :buffer MINUTE) > :hora_inicio";
+
+        $params = [
+            'sucursal_id' => $data['sucursal_id'],
+            'fecha' => $data['fecha'],
+            'hora_inicio' => $data['hora_inicio'],
+            'hora_fin' => $data['hora_fin'],
+            'buffer' => $bufferMinutos,
+        ];
+
+        if ($ignoreId) {
+            $sql .= " AND id <> :ignore_id";
+            $params['ignore_id'] = $ignoreId;
+        }
+
+        $row = Database::first($sql, $params);
+        return (int)($row['total'] ?? 0) > 0;
+    }
+
     public static function overlappingCount(array $data, ?int $ignoreId = null): int
     {
         $sql = "SELECT COUNT(*) AS total
