@@ -113,7 +113,6 @@ class DashboardController extends Controller
         ));
 
         $stats['citasVencidas'] = Cita::overduePendingCounts($user, $dashboardFilters);
-        $stats['citasVencidasPendientesDetalle'] = Cita::overduePendingList($user, 100, $dashboardFilters);
         $sucursales = Sucursal::all();
 
         $this->view('dashboard/index', compact('stats', 'user', 'dashboardFilters', 'sucursales'));

@@ -27,18 +27,6 @@ class ApiController extends Controller
         $this->json(['ok' => false, 'message' => 'No autorizado. Usa sesión o X-API-KEY.'], 401);
     }
 
-
-    private function mustClosePastAppointment(array $data): bool
-    {
-        return Cita::hasElapsed($data['fecha'], $data['hora_fin'])
-            && in_array($data['estatus'], ['agendada', 'confirmada'], true);
-    }
-
-    private function buildOverdueMessage(): string
-    {
-        return 'Una cita pasada no puede quedar en Agendada/Confirmada; marca Asistió o No asistió.';
-    }
-
     public function sucursales(): void
     {
         $this->requireApiOrSession();
@@ -59,7 +47,6 @@ class ApiController extends Controller
         $end = $_GET['end'] ?? date('Y-m-t');
         $sucursalId = $_GET['sucursal_id'] ?? '';
         $estatus = $_GET['estatus'] ?? '';
-        $includeBlocks = ($_GET['include_blocks'] ?? '1') !== '0';
 
         $events = Cita::calendarEvents($user, [
             'start' => $start,
@@ -92,14 +79,13 @@ class ApiController extends Controller
             ];
         }, $events);
 
-        if ($includeBlocks) {
-            $bloqueos = BloqueoHorario::allActiveForCalendar($user, [
-                'start' => $start,
-                'end' => $end,
-                'sucursal_id' => $sucursalId,
-            ]);
+        $bloqueos = BloqueoHorario::allActiveForCalendar($user, [
+            'start' => $start,
+            'end' => $end,
+            'sucursal_id' => $sucursalId,
+        ]);
 
-            foreach ($bloqueos as $bloqueo) {
+        foreach ($bloqueos as $bloqueo) {
             $fechas = [];
             if ($bloqueo['tipo_bloqueo'] === 'fecha_especifica' && !empty($bloqueo['fecha'])) {
                 $fechas[] = $bloqueo['fecha'];
@@ -140,8 +126,6 @@ class ApiController extends Controller
                     'is_block' => true,
                 ];
             }
-        }
-
         }
 
         $this->json(['ok' => true, 'data' => $payload]);
@@ -211,8 +195,8 @@ class ApiController extends Controller
             $this->json(['ok' => false, 'message' => 'No se pueden agendar citas en fechas anteriores al día actual.'], 422);
         }
 
-        if ($this->mustClosePastAppointment($data)) {
-            $this->json(['ok' => false, 'message' => $this->buildOverdueMessage()], 422);
+        if (Cita::hasElapsed($data['fecha'], $data['hora_fin']) && in_array($data['estatus'], ['agendada', 'confirmada'], true)) {
+            $this->json(['ok' => false, 'message' => 'Una cita pasada no puede quedar en Agendada/Confirmada; marca Asistió o No asistió.'], 422);
         }
 
         if (!in_array($data['servicio'], Cita::SERVICIOS, true)) {
@@ -253,130 +237,6 @@ class ApiController extends Controller
 
         Cita::create($data, (int)$user['id']);
         $this->json(['ok' => true, 'message' => 'Cita creada correctamente.']);
-    }
-
-
-    public function updateCita(string $id): void
-    {
-        $user = $this->requireApiOrSession();
-
-        $existing = Cita::find((int)$id);
-        if (!$existing) {
-            $this->json(['ok' => false, 'message' => 'Cita no encontrada.'], 404);
-        }
-
-        if ($user['rol'] === 'sucursal' && (int)$existing['sucursal_id'] !== (int)$user['sucursal_id']) {
-            $this->json(['ok' => false, 'message' => 'No autorizado.'], 403);
-        }
-
-        $payload = json_decode(file_get_contents('php://input'), true);
-        if (!is_array($payload)) {
-            $payload = $_POST;
-        }
-
-        $required = ['sucursal_id', 'servicio', 'fecha', 'hora_inicio', 'hora_fin'];
-        foreach ($required as $field) {
-            if (empty($payload[$field])) {
-                $this->json(['ok' => false, 'message' => "Falta el campo {$field}."], 422);
-            }
-        }
-
-        $clienteId = (int)($payload['cliente_id'] ?? 0);
-        $clienteNombre = trim((string)($payload['cliente_nombre'] ?? ''));
-        $clienteTelefono = trim((string)($payload['cliente_telefono'] ?? ''));
-        if ($clienteId > 0) {
-            $cliente = Cliente::find($clienteId);
-            if (!$cliente) {
-                $this->json(['ok' => false, 'message' => 'cliente_id inválido.'], 422);
-            }
-            $clienteNombre = $cliente['nombre_completo'];
-            $clienteTelefono = $cliente['telefono'];
-        }
-
-        if ($clienteNombre === '' || $clienteTelefono === '') {
-            $this->json(['ok' => false, 'message' => 'Debes enviar cliente_id o cliente_nombre + cliente_telefono.'], 422);
-        }
-
-        $data = [
-            'sucursal_id' => (string)($payload['sucursal_id']),
-            'cliente_id' => $clienteId ? (string)$clienteId : '',
-            'cliente_nombre' => $clienteNombre,
-            'cliente_telefono' => $clienteTelefono,
-            'servicio' => trim((string)$payload['servicio']),
-            'codigo_promocion' => null,
-            'programa_id' => trim((string)($payload['programa_id'] ?? '')),
-            'fecha' => trim((string)$payload['fecha']),
-            'hora_inicio' => trim((string)$payload['hora_inicio']),
-            'hora_fin' => trim((string)$payload['hora_fin']),
-            'estatus' => trim((string)($payload['estatus'] ?? 'agendada')),
-            'origen' => trim((string)($payload['origen'] ?? ($existing['origen'] ?? 'web'))),
-        ];
-
-        $codigoPromocion = trim((string)($payload['codigo_promocion'] ?? ''));
-        $data['codigo_promocion'] = $codigoPromocion === '' ? null : $codigoPromocion;
-
-        if ($user['rol'] === 'sucursal') {
-            $data['sucursal_id'] = (string)$user['sucursal_id'];
-            $data['origen'] = 'sucursal';
-        }
-
-        if (strtotime($data['fecha'] . ' ' . $data['hora_fin']) <= strtotime($data['fecha'] . ' ' . $data['hora_inicio'])) {
-            $this->json(['ok' => false, 'message' => 'La hora fin debe ser mayor a la hora inicio.'], 422);
-        }
-
-        if (!in_array($data['servicio'], Cita::SERVICIOS, true)) {
-            $this->json(['ok' => false, 'message' => 'Servicio inválido.'], 422);
-        }
-
-        if (!in_array($data['estatus'], ['agendada','confirmada','asistio','no_asistio','cancelada','reprogramada'], true)) {
-            $this->json(['ok' => false, 'message' => 'Estatus inválido.'], 422);
-        }
-
-        $isHistoricalLockedUpdate = Cita::hasElapsed((string)$existing['fecha'], (string)$existing['hora_fin']);
-        if ($isHistoricalLockedUpdate) {
-            foreach (['fecha', 'hora_inicio', 'hora_fin', 'sucursal_id'] as $field) {
-                if ((string)$data[$field] !== (string)$existing[$field]) {
-                    $this->json(['ok' => false, 'message' => 'No puedes modificar fecha/hora/sucursal en una cita histórica.'], 422);
-                }
-            }
-        }
-
-        if ($this->mustClosePastAppointment($data)) {
-            $this->json(['ok' => false, 'message' => $this->buildOverdueMessage()], 422);
-        }
-
-        if ($data['programa_id'] !== '') {
-            $programa = Programa::find((int)$data['programa_id']);
-            if (!$programa) {
-                $this->json(['ok' => false, 'message' => 'programa_id inválido.'], 422);
-            }
-            if ((int)$programa['activo'] !== 1) {
-                $this->json(['ok' => false, 'message' => 'El programa seleccionado está inactivo.'], 422);
-            }
-            if (!empty($programa['sucursal_id']) && (int)$programa['sucursal_id'] !== (int)$data['sucursal_id']) {
-                $this->json(['ok' => false, 'message' => 'El programa no pertenece a la sucursal enviada.'], 422);
-            }
-        }
-
-        $sucursal = Sucursal::find((int)$data['sucursal_id']);
-        if (!$sucursal) {
-            $this->json(['ok' => false, 'message' => 'sucursal_id inválido.'], 422);
-        }
-
-        if (!$isHistoricalLockedUpdate && !Sucursal::isRangeWithinBusinessHours($sucursal, $data['hora_inicio'], $data['hora_fin'])) {
-            $this->json(['ok' => false, 'message' => 'Horario fuera del rango permitido de la sucursal (' . Sucursal::openingHour($sucursal) . ' - ' . Sucursal::closingHour($sucursal) . ').'], 422);
-        }
-
-        $capacidad = max(1, (int)($sucursal['capacidad_simultanea'] ?? 1));
-        if (!$isHistoricalLockedUpdate && Cita::hasCapacityConflict($data, $capacidad, (int)$id)) {
-            $this->json(['ok' => false, 'message' => 'Horario sin cupo en esa sucursal.'], 409);
-        }
-        if (!$isHistoricalLockedUpdate && BloqueoHorario::hasBlockingForRange((int)$data['sucursal_id'], $data['fecha'], $data['hora_inicio'], $data['hora_fin'])) {
-            $this->json(['ok' => false, 'message' => 'Ese horario no está disponible en la sucursal seleccionada.'], 409);
-        }
-
-        Cita::update((int)$id, $data);
-        $this->json(['ok' => true, 'message' => 'Cita actualizada correctamente.']);
     }
 
     public function bloqueos(): void

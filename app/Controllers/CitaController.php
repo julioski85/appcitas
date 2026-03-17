@@ -23,7 +23,7 @@ class CitaController extends Controller
         return 'Esta cita ya ocurrió y no puede permanecer en Agendada/Confirmada. Debes marcarla como Asistió o No asistió.';
     }
 
-    private function normalizeAndValidateCita(array $input, array $user, ?int $ignoreId = null, bool $isUpdate = false, ?array $existing = null): array
+    private function normalizeAndValidateCita(array $input, array $user, ?int $ignoreId = null, bool $isUpdate = false): array
     {
         $data = $this->validate([
             'sucursal_id' => 'required',
@@ -96,27 +96,6 @@ class CitaController extends Controller
             back();
         }
 
-        $isHistoricalLockedUpdate = $isUpdate
-            && $existing
-            && Cita::hasElapsed((string)$existing['fecha'], (string)$existing['hora_fin']);
-
-        if ($isHistoricalLockedUpdate) {
-            $blockedFields = [
-                'fecha' => 'fecha',
-                'hora_inicio' => 'hora de inicio',
-                'hora_fin' => 'hora de fin',
-                'sucursal_id' => 'sucursal',
-            ];
-
-            foreach ($blockedFields as $field => $label) {
-                if ((string)$data[$field] !== (string)$existing[$field]) {
-                    set_flash('error', 'No se puede modificar ' . $label . ' en una cita histórica. Solo puedes cerrar su estatus.');
-                    set_old($input);
-                    back();
-                }
-            }
-        }
-
         if ($data['programa_id'] !== '') {
             $programa = Programa::find((int)$data['programa_id']);
             if (!$programa) {
@@ -143,7 +122,7 @@ class CitaController extends Controller
             back();
         }
 
-        if (!$isHistoricalLockedUpdate && !Sucursal::isRangeWithinBusinessHours($sucursal, $data['hora_inicio'], $data['hora_fin'])) {
+        if (!Sucursal::isRangeWithinBusinessHours($sucursal, $data['hora_inicio'], $data['hora_fin'])) {
             set_flash('error', 'El horario está fuera del rango permitido de la sucursal (' . Sucursal::openingHour($sucursal) . ' - ' . Sucursal::closingHour($sucursal) . ').');
             set_old($input);
             back();
@@ -151,13 +130,13 @@ class CitaController extends Controller
 
         $capacidad = max(1, (int)($sucursal['capacidad_simultanea'] ?? 1));
 
-        if (!$isHistoricalLockedUpdate && Cita::hasCapacityConflict($data, $capacidad, $ignoreId)) {
+        if (Cita::hasCapacityConflict($data, $capacidad, $ignoreId)) {
             set_flash('error', 'Ese horario no tiene cupo disponible en la sucursal seleccionada.');
             set_old($input);
             back();
         }
 
-        if (!$isHistoricalLockedUpdate && BloqueoHorario::hasBlockingForRange((int)$data['sucursal_id'], $data['fecha'], $data['hora_inicio'], $data['hora_fin'])) {
+        if (BloqueoHorario::hasBlockingForRange((int)$data['sucursal_id'], $data['fecha'], $data['hora_inicio'], $data['hora_fin'])) {
             set_flash('error', 'Ese horario no está disponible en la sucursal seleccionada.');
             set_old($input);
             back();
@@ -275,7 +254,7 @@ class CitaController extends Controller
             exit('No autorizado.');
         }
 
-        $data = $this->normalizeAndValidateCita($_POST, $user, (int)$id, true, $existing);
+        $data = $this->normalizeAndValidateCita($_POST, $user, (int)$id, true);
         Cita::update((int)$id, $data);
 
         set_flash('success', 'Cita actualizada correctamente.');
