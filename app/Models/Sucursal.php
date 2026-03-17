@@ -7,7 +7,7 @@ use App\Core\Database;
 
 class Sucursal
 {
-    public static function normalizeBufferMinutes($minutes, int $fallback = 5): int
+    public static function normalizeBufferMinutes($minutes, int $fallback = 0): int
     {
         if ($minutes === null || $minutes === '') {
             return $fallback;
