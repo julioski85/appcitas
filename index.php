@@ -100,6 +100,7 @@ $router->post('/users/toggle-active/{id}', [UserController::class, 'toggleActive
 $router->get('/api/sucursales', [ApiController::class, 'sucursales']);
 $router->get('/api/citas', [ApiController::class, 'citas']);
 $router->post('/api/citas', [ApiController::class, 'storeCita']);
+$router->post('/api/citas/update/{id}', [ApiController::class, 'updateCita']);
 $router->get('/api/horarios-disponibles', [ApiController::class, 'horariosDisponibles']);
 $router->get('/api/bloqueos', [ApiController::class, 'bloqueos']);
 $router->post('/api/bloqueos', [ApiController::class, 'storeBloqueo']);

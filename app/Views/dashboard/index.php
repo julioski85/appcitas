@@ -192,6 +192,40 @@
 </section>
 
 
+<?php
+$totalesCierre = [
+    'vencidas_agendada' => 0,
+    'vencidas_confirmada' => 0,
+    'asistio' => 0,
+    'no_asistio' => 0,
+];
+foreach (($stats['citasVencidas'] ?? []) as $itemTotales) {
+    $totalesCierre['vencidas_agendada'] += (int)($itemTotales['vencidas_agendada'] ?? 0);
+    $totalesCierre['vencidas_confirmada'] += (int)($itemTotales['vencidas_confirmada'] ?? 0);
+    $totalesCierre['asistio'] += (int)($itemTotales['asistio'] ?? 0);
+    $totalesCierre['no_asistio'] += (int)($itemTotales['no_asistio'] ?? 0);
+}
+?>
+
+<section class="stats-grid">
+    <div class="card stat-card">
+        <div class="stat-label">Vencidas en Agendada</div>
+        <div class="stat-value"><?= $totalesCierre['vencidas_agendada'] ?></div>
+    </div>
+    <div class="card stat-card">
+        <div class="stat-label">Vencidas en Confirmada</div>
+        <div class="stat-value"><?= $totalesCierre['vencidas_confirmada'] ?></div>
+    </div>
+    <div class="card stat-card">
+        <div class="stat-label">Cerradas: Asistió</div>
+        <div class="stat-value"><?= $totalesCierre['asistio'] ?></div>
+    </div>
+    <div class="card stat-card">
+        <div class="stat-label">Cerradas: No asistió</div>
+        <div class="stat-value"><?= $totalesCierre['no_asistio'] ?></div>
+    </div>
+</section>
+
 <section class="card">
     <h3>Control de citas vencidas y cierre operativo</h3>
     <div class="table-wrap">
@@ -213,6 +247,45 @@
                     <td><strong><?= (int)($item['vencidas_confirmada'] ?? 0) ?></strong></td>
                     <td><?= (int)($item['asistio'] ?? 0) ?></td>
                     <td><?= (int)($item['no_asistio'] ?? 0) ?></td>
+                </tr>
+                <?php endforeach; ?>
+            </tbody>
+        </table>
+    </div>
+</section>
+
+<section class="card">
+    <h3>Detalle de citas vencidas pendientes de cierre</h3>
+    <div class="table-wrap">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Fecha</th>
+                    <th>Horario</th>
+                    <th>Cliente</th>
+                    <th>Sucursal</th>
+                    <th>Estatus actual</th>
+                    <th>Tiempo desde vencimiento</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php foreach (($stats['citasVencidasPendientesDetalle'] ?? []) as $citaVencida): ?>
+                <?php
+                    $min = max(0, (int)($citaVencida['minutos_desde_vencimiento'] ?? 0));
+                    $dias = intdiv($min, 1440);
+                    $horas = intdiv($min % 1440, 60);
+                    $minutos = $min % 60;
+                    $elapsed = ($dias > 0 ? $dias . 'd ' : '') . $horas . 'h ' . $minutos . 'm';
+                ?>
+                <tr>
+                    <td><?= e(format_date($citaVencida['fecha'])) ?></td>
+                    <td><?= e(format_time($citaVencida['hora_inicio'])) ?> - <?= e(format_time($citaVencida['hora_fin'])) ?></td>
+                    <td><?= e($citaVencida['cliente_nombre']) ?></td>
+                    <td><?= e($citaVencida['sucursal_nombre']) ?></td>
+                    <td><span class="badge badge-<?= e($citaVencida['estatus']) ?>"><?= e($citaVencida['estatus']) ?></span></td>
+                    <td><?= e($elapsed) ?></td>
+                    <td><a class="btn btn-outline btn-sm" href="<?= e(url('/citas/edit/' . $citaVencida['id'])) ?>">Editar / Cerrar</a></td>
                 </tr>
                 <?php endforeach; ?>
             </tbody>
