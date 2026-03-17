@@ -244,10 +244,11 @@ class Cita
         );
     }
 
-    public static function overduePendingList(array $user, int $limit = 10): array
+    public static function overduePendingList(array $user, int $limit = 10, array $filters = []): array
     {
         $params = ['limit' => $limit];
         $sql = "SELECT c.*, s.nombre AS sucursal_nombre
+                       , TIMESTAMPDIFF(MINUTE, TIMESTAMP(c.fecha, c.hora_fin), NOW()) AS minutos_desde_vencimiento
                 FROM citas c
                 INNER JOIN sucursales s ON s.id = c.sucursal_id
                 WHERE c.estatus IN ('agendada', 'confirmada')
@@ -256,6 +257,19 @@ class Cita
         if ($user['rol'] === 'sucursal') {
             $sql .= " AND c.sucursal_id = :sucursal_id";
             $params['sucursal_id'] = (int)$user['sucursal_id'];
+        } elseif (!empty($filters['sucursal_id'])) {
+            $sql .= " AND c.sucursal_id = :sucursal_id";
+            $params['sucursal_id'] = (int)$filters['sucursal_id'];
+        }
+
+        if (!empty($filters['start'])) {
+            $sql .= " AND c.fecha >= :start";
+            $params['start'] = $filters['start'];
+        }
+
+        if (!empty($filters['end'])) {
+            $sql .= " AND c.fecha <= :end";
+            $params['end'] = $filters['end'];
         }
 
         $sql .= " ORDER BY c.fecha DESC, c.hora_fin DESC LIMIT :limit";

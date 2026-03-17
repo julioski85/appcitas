@@ -52,6 +52,7 @@
     url.searchParams.set('end', ymd(range.end));
     if (app.dataset.sucursal) url.searchParams.set('sucursal_id', app.dataset.sucursal);
     if (app.dataset.estatus) url.searchParams.set('estatus', app.dataset.estatus);
+    url.searchParams.set('include_blocks', currentView === 'month' ? '0' : '1');
     const res = await fetch(url.toString(), { credentials: 'same-origin' });
     const json = await res.json();
     return json.data || [];
