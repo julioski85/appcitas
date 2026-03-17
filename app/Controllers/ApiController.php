@@ -231,12 +231,6 @@ class ApiController extends Controller
         if (Cita::hasCapacityConflict($data, $capacidad)) {
             $this->json(['ok' => false, 'message' => 'Horario sin cupo en esa sucursal.'], 409);
         }
-
-        $bufferMinutos = Sucursal::normalizeBufferMinutes($sucursal['buffer_minutos'] ?? null);
-        if (Cita::hasBufferConflict($data, $bufferMinutos)) {
-            $this->json(['ok' => false, 'message' => 'El horario no respeta el buffer operativo de ' . $bufferMinutos . ' minutos entre citas.'], 409);
-        }
-
         if (BloqueoHorario::hasBlockingForRange((int)$data['sucursal_id'], $data['fecha'], $data['hora_inicio'], $data['hora_fin'])) {
             $this->json(['ok' => false, 'message' => 'Ese horario no está disponible en la sucursal seleccionada.'], 409);
         }
