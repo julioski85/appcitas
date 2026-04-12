@@ -14,7 +14,7 @@ unset($queryBase['page']);
 </section>
 
 <script>
-(function () {
+document.addEventListener('DOMContentLoaded', function () {
     var table = document.querySelector('.citas-table[data-status-update-url]');
     if (!table) return;
 
@@ -30,44 +30,73 @@ unset($queryBase['page']);
         if (state === 'error') feedback.classList.add('is-error');
     }
 
-    table.querySelectorAll('.inline-status[data-cita-id]').forEach(function (select) {
-        var originalValue = select.value;
-        select.addEventListener('change', function () {
-            var citaId = select.getAttribute('data-cita-id');
-            var status = select.value;
-            var body = new URLSearchParams();
-            body.append('_csrf', csrf);
-            body.append('estatus', status);
+    function setSavingState(select, button, saving) {
+        select.classList.toggle('is-loading', saving);
+        select.disabled = saving;
+        if (button) {
+            button.disabled = saving;
+            button.textContent = saving ? 'Actualizando...' : 'Actualizar';
+        }
+    }
 
-            select.classList.add('is-loading');
-            setFeedback(citaId, 'Guardando...', '');
+    function saveStatus(select, button) {
+        var citaId = select.getAttribute('data-cita-id');
+        var originalValue = select.getAttribute('data-original-status') || select.value;
+        var status = select.value;
 
-            fetch(endpointBase + '/' + encodeURIComponent(citaId), {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8',
-                    'X-Requested-With': 'XMLHttpRequest'
-                },
-                body: body.toString()
-            }).then(function (response) {
-                return response.json().then(function (payload) {
-                    return { ok: response.ok, payload: payload || {} };
-                });
-            }).then(function (result) {
-                if (!result.ok || !result.payload.ok) {
-                    throw new Error((result.payload && result.payload.message) ? result.payload.message : 'No se pudo actualizar el estatus.');
-                }
-                originalValue = status;
-                setFeedback(citaId, 'Actualizado', 'ok');
-            }).catch(function (error) {
-                select.value = originalValue;
-                setFeedback(citaId, (error && error.message) ? error.message : 'Error al actualizar estatus.', 'error');
-            }).finally(function () {
-                select.classList.remove('is-loading');
+        if (status === originalValue) {
+            setFeedback(citaId, 'Sin cambios por guardar.', '');
+            return;
+        }
+
+        var body = new URLSearchParams();
+        body.append('_csrf', csrf);
+        body.append('estatus', status);
+
+        setSavingState(select, button, true);
+        setFeedback(citaId, 'Guardando...', '');
+
+        fetch(endpointBase + '/' + encodeURIComponent(citaId), {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8',
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: body.toString()
+        }).then(function (response) {
+            return response.json().then(function (payload) {
+                return { ok: response.ok, payload: payload || {} };
             });
+        }).then(function (result) {
+            if (!result.ok || !result.payload.ok) {
+                throw new Error((result.payload && result.payload.message) ? result.payload.message : 'No se pudo actualizar el estatus.');
+            }
+            select.setAttribute('data-original-status', status);
+            setFeedback(citaId, 'Actualizado', 'ok');
+        }).catch(function (error) {
+            select.value = originalValue;
+            setFeedback(citaId, (error && error.message) ? error.message : 'Error al actualizar estatus.', 'error');
+        }).finally(function () {
+            setSavingState(select, button, false);
         });
+    }
+
+    table.querySelectorAll('.inline-status[data-cita-id]').forEach(function (select) {
+        var citaId = select.getAttribute('data-cita-id');
+        var button = table.querySelector('[data-status-save="' + citaId + '"]');
+
+        select.addEventListener('change', function () {
+            var changed = select.value !== (select.getAttribute('data-original-status') || select.value);
+            setFeedback(citaId, changed ? 'Cambio pendiente. Presiona Actualizar.' : 'Sin cambios por guardar.', '');
+        });
+
+        if (button) {
+            button.addEventListener('click', function () {
+                saveStatus(select, button);
+            });
+        }
     });
-})();
+});
 </script>
 
 <section class="card">
@@ -159,11 +188,12 @@ unset($queryBase['page']);
                     <td><?= e($cita['origen']) ?></td>
                     <td>
                         <div class="inline-status-wrap">
-                            <select class="inline-status" data-cita-id="<?= e((string)$cita['id']) ?>" aria-label="Cambiar estatus de cita <?= e((string)$cita['id']) ?>">
+                            <select class="inline-status" data-cita-id="<?= e((string)$cita['id']) ?>" data-original-status="<?= e($cita['estatus']) ?>" aria-label="Cambiar estatus de cita <?= e((string)$cita['id']) ?>">
                                 <?php foreach ($statusOptions as $est): ?>
                                     <option value="<?= e($est) ?>" <?= selected($cita['estatus'], $est) ?>><?= e($est) ?></option>
                                 <?php endforeach; ?>
                             </select>
+                            <button type="button" class="btn btn-outline btn-sm" data-status-save="<?= e((string)$cita['id']) ?>">Actualizar</button>
                             <span class="inline-status-feedback" data-status-feedback="<?= e((string)$cita['id']) ?>"></span>
                         </div>
                     </td>
