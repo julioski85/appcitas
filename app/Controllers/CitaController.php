@@ -12,6 +12,15 @@ use App\Models\Programa;
 
 class CitaController extends Controller
 {
+    private const STATUS_OPTIONS = [
+        'agendada',
+        'confirmada',
+        'asistio',
+        'no_asistio',
+        'cancelada',
+        'reprogramada',
+    ];
+
     private function normalizeAndValidateCita(array $input, array $user, string $mode = 'create', ?array $existing = null, ?int $ignoreId = null): array
     {
         $data = $this->validate([
@@ -155,7 +164,7 @@ class CitaController extends Controller
         return $data;
     }
 
-    public function index(): void
+    public function calendar(): void
     {
         $user = $this->requireAuth();
         $filters = [
@@ -180,9 +189,41 @@ class CitaController extends Controller
         $calendarOpenHour = $selectedSucursal ? Sucursal::openingHour($selectedSucursal) : '08:00';
         $calendarCloseHour = $selectedSucursal ? Sucursal::closingHour($selectedSucursal) : '20:00';
 
-        $ultimasCitas = Cita::latest($user, $filters);
+        $this->view('citas/calendar', compact('user', 'filters', 'sucursales', 'calendarOpenHour', 'calendarCloseHour'));
+    }
 
-        $this->view('citas/index', compact('user', 'filters', 'sucursales', 'ultimasCitas', 'calendarOpenHour', 'calendarCloseHour'));
+    public function index(): void
+    {
+        $user = $this->requireAuth();
+        $page = max(1, (int)($_GET['page'] ?? 1));
+        $perPage = 20;
+
+        $filters = [
+            'sucursal_id' => $_GET['sucursal_id'] ?? '',
+            'estatus' => $_GET['estatus'] ?? '',
+            'start' => $_GET['start'] ?? '',
+            'end' => $_GET['end'] ?? '',
+            'q' => trim((string)($_GET['q'] ?? '')),
+        ];
+
+        if ($user['rol'] === 'sucursal') {
+            $filters['sucursal_id'] = (string)$user['sucursal_id'];
+        }
+
+        $sucursales = Sucursal::all();
+        $result = Cita::paginated($user, $filters, $page, $perPage);
+        $citas = $result['items'];
+        $total = (int)$result['total'];
+        $totalPages = max(1, (int)ceil($total / $perPage));
+
+        if ($page > $totalPages && $total > 0) {
+            $query = $_GET;
+            $query['page'] = (string)$totalPages;
+            redirect('/citas?' . http_build_query($query));
+        }
+
+        $statusOptions = self::STATUS_OPTIONS;
+        $this->view('citas/index', compact('user', 'filters', 'sucursales', 'citas', 'page', 'perPage', 'total', 'totalPages', 'statusOptions'));
     }
 
     public function create(): void
@@ -449,6 +490,40 @@ class CitaController extends Controller
         } catch (\Throwable $e) {
             $this->json(['ok' => false, 'message' => 'Error de servidor al crear el prospecto.'], 500);
         }
+    }
+
+    public function updateStatus(string $id): void
+    {
+        $user = $this->requireAuth();
+        verify_csrf();
+
+        $status = trim((string)($_POST['estatus'] ?? ''));
+        if (!in_array($status, self::STATUS_OPTIONS, true)) {
+            $this->json(['ok' => false, 'message' => 'Estatus inválido.'], 422);
+        }
+
+        $existing = Cita::find((int)$id);
+        if (!$existing) {
+            $this->json(['ok' => false, 'message' => 'Cita no encontrada.'], 404);
+        }
+
+        if ($user['rol'] === 'sucursal' && (int)$existing['sucursal_id'] !== (int)$user['sucursal_id']) {
+            $this->json(['ok' => false, 'message' => 'No autorizado para actualizar esta cita.'], 403);
+        }
+
+        $ok = Cita::updateStatus((int)$id, $status);
+        if (!$ok) {
+            $this->json(['ok' => false, 'message' => 'No fue posible actualizar el estatus.'], 500);
+        }
+
+        $this->json([
+            'ok' => true,
+            'message' => 'Estatus actualizado correctamente.',
+            'data' => [
+                'id' => (int)$id,
+                'estatus' => $status,
+            ],
+        ]);
     }
 
 }

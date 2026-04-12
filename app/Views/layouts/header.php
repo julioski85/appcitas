@@ -25,7 +25,8 @@ $error = flash('error');
 
             <nav class="nav">
                 <a class="nav-link <?= current_path() === '/dashboard' ? 'active' : '' ?>" href="<?= e(url('/dashboard')) ?>">Dashboard</a>
-                <a class="nav-link <?= current_path() === '/citas' ? 'active' : '' ?>" href="<?= e(url('/citas')) ?>">Calendario y citas</a>
+                <a class="nav-link <?= current_path() === '/calendario' ? 'active' : '' ?>" href="<?= e(url('/calendario')) ?>">Calendario</a>
+                <a class="nav-link <?= str_starts_with(current_path(), '/citas') ? 'active' : '' ?>" href="<?= e(url('/citas')) ?>">Citas</a>
                 <a class="nav-link <?= str_starts_with(current_path(), '/clientes') ? 'active' : '' ?>" href="<?= e(url('/clientes')) ?>">Clientes</a>
                 <?php if (in_array($user['rol'], ['admin', 'sucursal'], true)): ?>
                     <a class="nav-link <?= str_starts_with(current_path(), '/bloqueos-horario') ? 'active' : '' ?>" href="<?= e(url('/bloqueos-horario')) ?>">Bloqueos de horario</a>

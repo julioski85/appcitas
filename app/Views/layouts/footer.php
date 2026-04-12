@@ -9,7 +9,7 @@ window.APP = {
 };
 </script>
 <script src="<?= e(asset('js/app.js')) ?>"></script>
-<?php if (str_starts_with(current_path(), '/citas')): ?>
+<?php if (current_path() === '/calendario'): ?>
 <script src="<?= e(asset('js/calendar.js')) ?>"></script>
 <?php endif; ?>
 </body>
