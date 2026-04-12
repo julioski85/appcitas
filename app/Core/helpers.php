@@ -52,7 +52,10 @@ function asset(string $path): string
     $absolutePath = base_path('public/assets/' . $normalizedPath);
 
     if (is_file($absolutePath)) {
-        $version = (string) filemtime($absolutePath);
+        $fileHash = md5_file($absolutePath);
+        $version = $fileHash !== false
+            ? substr($fileHash, 0, 12)
+            : (string) filemtime($absolutePath);
         return $assetUrl . '?v=' . rawurlencode($version);
     }
 
