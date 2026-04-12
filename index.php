@@ -52,6 +52,7 @@ $router->get('/sucursales/edit/{id}', [SucursalController::class, 'edit']);
 $router->post('/sucursales/update/{id}', [SucursalController::class, 'update']);
 $router->post('/sucursales/delete/{id}', [SucursalController::class, 'delete']);
 
+$router->get('/calendario', [CitaController::class, 'calendar']);
 $router->get('/citas', [CitaController::class, 'index']);
 $router->get('/citas/create', [CitaController::class, 'create']);
 $router->post('/citas/store', [CitaController::class, 'store']);
@@ -59,6 +60,7 @@ $router->get('/citas/edit/{id}', [CitaController::class, 'edit']);
 $router->post('/citas/update/{id}', [CitaController::class, 'update']);
 $router->post('/citas/delete/{id}', [CitaController::class, 'delete']);
 $router->post('/citas/cancel/{id}', [CitaController::class, 'cancel']);
+$router->post('/citas/update-status/{id}', [CitaController::class, 'updateStatus']);
 $router->get('/citas/clientes/search', [CitaController::class, 'searchClientes']);
 $router->get('/citas/programas', [CitaController::class, 'programasPorSucursal']);
 $router->post('/citas/prospectos/quick-store', [CitaController::class, 'quickStoreProspecto']);

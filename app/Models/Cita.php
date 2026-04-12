@@ -7,6 +7,15 @@ use App\Core\Database;
 
 class Cita
 {
+    public const ESTATUS = [
+        'agendada',
+        'confirmada',
+        'asistio',
+        'no_asistio',
+        'cancelada',
+        'reprogramada',
+    ];
+
     public const SERVICIOS = [
         'Consulta general',
         'Ozonoterapia',
@@ -80,6 +89,54 @@ class Cita
              LIMIT 20",
             $params
         );
+    }
+
+    public static function paginated(array $user, array $filters = [], int $page = 1, int $perPage = 20): array
+    {
+        [$whereSql, $params] = self::filtersForUser($user, $filters);
+        $whereParts = [];
+
+        if ($whereSql !== '') {
+            $whereParts[] = preg_replace('/^WHERE\s+/i', '', $whereSql);
+        }
+
+        if (!empty($filters['q'])) {
+            $whereParts[] = '(c.id = :search_id OR c.cliente_nombre LIKE :search OR c.cliente_telefono LIKE :search OR c.servicio LIKE :search)';
+            $params['search'] = '%' . trim((string)$filters['q']) . '%';
+            $params['search_id'] = (int)$filters['q'];
+        }
+
+        $where = $whereParts ? 'WHERE ' . implode(' AND ', $whereParts) : '';
+        $countRow = Database::first(
+            "SELECT COUNT(*) AS total
+             FROM citas c
+             INNER JOIN sucursales s ON s.id = c.sucursal_id
+             $where",
+            $params
+        );
+
+        $total = (int)($countRow['total'] ?? 0);
+        $page = max(1, $page);
+        $perPage = max(1, $perPage);
+        $offset = ($page - 1) * $perPage;
+
+        $rows = Database::select(
+            "SELECT c.*, s.nombre AS sucursal_nombre, s.color_calendario, u.nombre AS creador_nombre, cl.nombre_completo AS cliente_real_nombre, p.nombre AS programa_nombre
+             FROM citas c
+             INNER JOIN sucursales s ON s.id = c.sucursal_id
+             LEFT JOIN usuarios u ON u.id = c.creado_por
+             LEFT JOIN clientes cl ON cl.id = c.cliente_id
+             LEFT JOIN programas p ON p.id = c.programa_id
+             $where
+             ORDER BY c.fecha DESC, c.hora_inicio DESC, c.id DESC
+             LIMIT $perPage OFFSET $offset",
+            $params
+        );
+
+        return [
+            'items' => $rows,
+            'total' => $total,
+        ];
     }
 
     public static function find(int $id): ?array
@@ -193,6 +250,28 @@ class Cita
         if ($ok && !empty($existing['cliente_id'])) {
             Cliente::updateStatusAndCitas((int)$existing['cliente_id']);
         }
+        return $ok;
+    }
+
+    public static function updateStatus(int $id, string $status): bool
+    {
+        if (!in_array($status, self::ESTATUS, true)) {
+            return false;
+        }
+
+        $existing = self::find($id);
+        $ok = Database::execute(
+            "UPDATE citas SET estatus = :estatus, updated_at = NOW() WHERE id = :id",
+            [
+                'estatus' => $status,
+                'id' => $id,
+            ]
+        );
+
+        if ($ok && !empty($existing['cliente_id'])) {
+            Cliente::updateStatusAndCitas((int)$existing['cliente_id']);
+        }
+
         return $ok;
     }
 
